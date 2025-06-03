@@ -25,53 +25,153 @@ body {
     transition: all 0.3s ease;
 }
 
-/* Central ranking table - sticky */
+/* Central ranking container - sticky */
 .ranking-container {
     position: sticky;
     top: 50%;
     transform: translateY(-50%);
-    width: 800px;
-    max-width: 90vw;
+    width: 1200px;
+    max-width: 95vw;
     margin: 0 auto;
     background: white;
     border-radius: 10px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     padding: 20px;
     z-index: 50;
+    display: flex;
+    gap: 20px;
 }
 
-.ranking-table {
+/* Individual table containers */
+.table-section {
+    flex: 1;
+}
+
+.table-header {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #0066cc;
+}
+
+.ranking-header {
+    color: #0066cc;
+}
+
+.momentum-header {
+    color: #ff6b35;
+}
+
+.ranking-table, .momentum-table {
     width: 100%;
 }
 
-.ranking-row {
+.ranking-row, .momentum-row {
     display: flex;
     align-items: center;
-    padding: 12px 0;
+    padding: 10px 0;
     border-bottom: 1px solid #eee;
     transition: all 0.3s ease;
 }
 
 .rank-number {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
     color: #0066cc;
-    width: 60px;
+    width: 40px;
+    text-align: center;
+}
+
+.momentum-number {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ff6b35;
+    width: 40px;
     text-align: center;
 }
 
 .player-name {
     flex: 1;
-    font-size: 18px;
-    margin-left: 20px;
+    font-size: 16px;
+    margin-left: 15px;
 }
 
 .player-points {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     color: #666;
-    width: 100px;
+    width: 80px;
     text-align: right;
+}
+
+.player-titles {
+    font-size: 14px;
+    font-weight: bold;
+    color: #ff6b35;
+    width: 80px;
+    text-align: right;
+}
+
+/* Summary info */
+.momentum-summary {
+    background: #fff3e0;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 14px;
+    color: #e65100;
+}
+
+/* Pie chart container */
+.pie-chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+}
+
+#momentum-pie-chart {
+    max-width: 100%;
+    height: 100%;
+}
+
+/* Pie chart styles */
+.pie-slice {
+    stroke: white;
+    stroke-width: 3;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.pie-slice:hover {
+    opacity: 0.8;
+}
+
+.pie-external-label {
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: bold;
+    text-anchor: middle;
+    fill: #333;
+    pointer-events: none;
+}
+
+.pie-label-line {
+    stroke: #999;
+    stroke-width: 1;
+    fill: none;
+}
+
+.pie-title-count {
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    text-anchor: middle;
+    fill: #ff6b35;
+    pointer-events: none;
 }
 
 /* Scroll sections */

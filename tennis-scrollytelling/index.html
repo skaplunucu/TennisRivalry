@@ -14,10 +14,25 @@
 
     <!-- Scroll sections container -->
     <div id="scroll-container">
-        <!-- Central ranking table -->
+        <!-- Central dual tables -->
         <div class="ranking-container">
-            <div class="ranking-table" id="ranking-table">
-                <div>Loading rankings...</div>
+            <!-- Rankings section -->
+            <div class="table-section">
+                <div class="table-header ranking-header">ATP Rankings</div>
+                <div class="ranking-table" id="ranking-table">
+                    <div>Loading rankings...</div>
+                </div>
+            </div>
+            
+            <!-- Momentum section -->
+            <div class="table-section">
+                <div class="table-header momentum-header">Title Momentum</div>
+                <div class="momentum-summary" id="momentum-summary">
+                    Loading momentum data...
+                </div>
+                <div class="pie-chart-container">
+                    <svg id="momentum-pie-chart" width="450" height="400"></svg>
+                </div>
             </div>
         </div>
 
@@ -25,6 +40,7 @@
     </div>
 
     <script src="https://unpkg.com/scrollama"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="js/scrollytelling.js"></script>
 </body>
 </html>
