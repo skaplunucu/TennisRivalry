@@ -47,6 +47,9 @@ class RankingTimeline {
             }
         }
 
+        // Load player nationality data
+        await this.loadPlayerNationalities();
+        
         // Continue setup after data is loaded
         this.createScrollSections();
         this.createTimeline();
@@ -56,6 +59,64 @@ class RankingTimeline {
 
         console.log('✅ Initialization complete!');
     }
+
+    async loadPlayerNationalities() {
+        try {
+            console.log('Loading player_list.json...');
+            const response = await fetch('./data/player_list.json');
+            const playerList = await response.json();
+            
+            // Create nationality mapping: player_name -> country_code
+            this.playerNationalities = new Map();
+            playerList.forEach(player => {
+                this.playerNationalities.set(player.player_name, player.country);
+            });
+            
+            console.log(`✅ Loaded nationalities for ${this.playerNationalities.size} players`);
+        } catch (error) {
+            console.log('❌ Failed to load player nationalities:', error.message);
+            this.playerNationalities = new Map();
+        }
+    }
+
+    getCountryFlag(countryCode) {
+        // Convert country code to flag emoji using proper Unicode
+        const flagMap = {
+            'USA': '🇺🇸', 'ESP': '🇪🇸', 'SUI': '🇨🇭', 'SRB': '🇷🇸', 'ARG': '🇦🇷',
+            'RUS': '🇷🇺', 'AUT': '🇦🇹', 'GBR': '🇬🇧', 'GER': '🇩🇪', 'FRA': '🇫🇷',
+            'ITA': '🇮🇹', 'NED': '🇳🇱', 'BEL': '🇧🇪', 'CRO': '🇭🇷', 'GRE': '🇬🇷',
+            'CAN': '🇨🇦', 'AUS': '🇦🇺', 'JPN': '🇯🇵', 'KOR': '🇰🇷', 'CHN': '🇨🇳',
+            'BRA': '🇧🇷', 'CHI': '🇨🇱', 'URU': '🇺🇾', 'PER': '🇵🇪', 'COL': '🇨🇴',
+            'MEX': '🇲🇽', 'RSA': '🇿🇦', 'EGY': '🇪🇬', 'MAR': '🇲🇦', 'TUN': '🇹🇳',
+            'ISR': '🇮🇱', 'IND': '🇮🇳', 'PAK': '🇵🇰', 'THA': '🇹🇭', 'VIE': '🇻🇳',
+            'TPE': '🇹🇼', 'HKG': '🇭🇰', 'SIN': '🇸🇬', 'MAS': '🇲🇾', 'PHI': '🇵🇭',
+            'INA': '🇮🇩', 'UZB': '🇺🇿', 'KAZ': '🇰🇿', 'GEO': '🇬🇪', 'ARM': '🇦🇲',
+            'BLR': '🇧🇾', 'UKR': '🇺🇦', 'POL': '🇵🇱', 'CZE': '🇨🇿', 'SVK': '🇸🇰',
+            'HUN': '🇭🇺', 'ROU': '🇷🇴', 'BUL': '🇧🇬', 'SLO': '🇸🇮', 'FIN': '🇫🇮',
+            'SWE': '🇸🇪', 'NOR': '🇳🇴', 'DEN': '🇩🇰', 'ISL': '🇮🇸', 'IRL': '🇮🇪',
+            'POR': '🇵🇹', 'ECU': '🇪🇨', 'VEN': '🇻🇪', 'PAR': '🇵🇾', 'BOL': '🇧🇴',
+            // Add more common tennis countries
+            'TCH': '🇨🇿', 'YUG': '🇷🇸', 'URS': '🇷🇺', 'FRG': '🇩🇪', 'GDR': '🇩🇪'
+        };
+        return flagMap[countryCode] || '🏳️';
+    }
+
+    // getCountryFlag(countryCode) {
+    //     const flagMap = {
+    //         'USA': '\uD83C\uDDFA\uD83C\uDDF8', // 🇺🇸
+    //         'ESP': '\uD83C\uDDEA\uD83C\uDDF8', // 🇪🇸
+    //         'SUI': '\uD83C\uDDE8\uD83C\uDDED', // 🇨🇭
+    //         'SRB': '\uD83C\uDDF7\uD83C\uDDF8', // 🇷🇸
+    //         'ARG': '\uD83C\uDDE6\uD83C\uDDF7', // 🇦🇷
+    //         'RUS': '\uD83C\uDDF7\uD83C\uDDFA', // 🇷🇺
+    //         'AUT': '\uD83C\uDDE6\uD83C\uDDF9', // 🇦🇹
+    //         'GBR': '\uD83C\uDDEC\uD83C\uDDE7', // 🇬🇧
+    //         'GER': '\uD83C\uDDE9\uD83C\uDDEA', // 🇩🇪
+    //         'FRA': '\uD83C\uDDEB\uD83C\uDDF7', // 🇫🇷
+    //         // Add more as needed...
+    //     };
+    //     return flagMap[countryCode] || '\uD83C\uDFF3\uFE0F'; // 🏳️
+    // }
 
     createScrollSections() {
         const container = document.getElementById('scroll-container');
@@ -540,6 +601,40 @@ class RankingTimeline {
             .innerRadius(radius * 1.2)
             .outerRadius(radius * 1.2);
 
+        // Handle connecting lines FIRST so they appear behind everything else
+        // (Render connecting lines for player cards only, not "Others")
+        const linesData = pie(chartData).filter(d => d.data.player_name !== 'Others');
+        const lines = g.selectAll('.pie-label-line')
+            .data(linesData, d => d.data.player_name);
+
+        lines.exit()
+            .transition()
+            .duration(750)
+            .style('opacity', 0)
+            .remove();
+
+        const linesEnter = lines.enter()
+            .append('polyline')
+            .attr('class', 'pie-label-line')
+            .style('opacity', 0);
+
+        const linesUpdate = linesEnter.merge(lines);
+
+        linesUpdate
+            .transition()
+            .duration(750)
+            .style('opacity', 1)
+            .attr('points', function(d) {
+                const pos = outerArc.centroid(d);
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                // Line to player card photo
+                pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
+                const cardPos = [...pos];
+                cardPos[0] += isLeft ? -40 : -40; // Updated to match new image position
+                cardPos[1] = pos[1] - 15;
+                return [arc.centroid(d), outerArc.centroid(d), cardPos].join(' ');
+            });
+
         // Bind data to pie slices with key function for object constancy
         const arcs = g.selectAll('.arc')
             .data(pie(chartData), d => d.data.player_name);
@@ -651,35 +746,93 @@ class RankingTimeline {
             .merge(photoImages)
             .attr('x', function(d) {
                 const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
-                return isLeft ? -55 : 5;
+                return isLeft ? -75 : -15;
             })
-            .attr('y', -40)
-            .attr('width', 50)
-            .attr('height', 50)
+            .attr('y', -50)
+            .attr('width', 70)
+            .attr('height', 70)
             .attr('href', d => `./images/players/cropped/${d.data.player_name.toLowerCase().replace(/\s+/g, '-')}_cropped.png`)
-            .style('clip-path', 'circle(25px)')
+            .style('clip-path', 'circle(35px)')
             .on('error', function(event, d) {
-                // If photo doesn't exist, show initials
-                d3.select(this).style('display', 'none');
+                // If photo doesn't exist, show colored circle with initials
                 const card = d3.select(this.parentNode);
                 const initials = d.data.player_name.split(' ').map(n => n[0]).join('');
-                
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+
+                // Hide the broken image completely and immediately
+                d3.select(this)
+                    .style('display', 'none')
+                    .attr('width', 0)
+                    .attr('height', 0);
+
+                // Make sure the background circle is visible and properly colored
                 card.select('.player-photo')
-                    .attr('fill', this.playerColors.get(d.data.player_name) || '#ddd');
-                    
-                card.append('text')
-                    .attr('class', 'player-initials')
-                    .attr('x', function() {
-                        const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
-                        return isLeft ? -30 : 30;
-                    })
-                    .attr('y', -10)
-                    .attr('text-anchor', 'middle')
-                    .attr('fill', 'white')
-                    .attr('font-size', '14px')
-                    .attr('font-weight', 'bold')
-                    .text(initials);
+                    .attr('fill', this.playerColors.get(d.data.player_name) || '#ddd')
+                    .attr('stroke', '#fff')
+                    .attr('stroke-width', 3)
+                    .style('display', 'block')
+                    .style('opacity', 1);
+
+                // Add initials text centered in the enlarged circle
+                if (card.select('.player-initials').empty()) {
+                    card.append('text')
+                        .attr('class', 'player-initials')
+                        .attr('x', isLeft ? -40 : -40) // Center of enlarged 70px photo
+                        .attr('y', -10) // Vertically centered
+                        .attr('text-anchor', 'middle')
+                        .attr('fill', 'white')
+                        .attr('font-size', '20px') // Even larger font for better visibility
+                        .attr('font-weight', 'bold')
+                        .style('pointer-events', 'none')
+                        .text(initials);
+                }
             }.bind(this));
+
+        // Add nationality flag images
+        const flags = cardsUpdate.selectAll('.player-flag')
+            .data(d => [d]);
+
+        flags.enter()
+            .append('image')
+            .attr('class', 'player-flag')
+            .merge(flags)
+            .attr('x', function(d) {
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                return isLeft ? -75 : -35;
+            })
+            .attr('y', 0)
+            .attr('width', 24)
+            .attr('height', 16)
+            .attr('href', function(d) {
+                const countryCode = this.playerNationalities?.get(d.data.player_name);
+                const flagPath = countryCode ? `./images/flags/${countryCode.toLowerCase()}.png` : './images/flags/unknown.png';
+                console.log(`Flag for ${d.data.player_name}: ${countryCode} -> ${flagPath}`);
+                return flagPath;
+            }.bind(this))
+            .on('error', function(event, d) {
+                console.log(`Flag image failed to load: ${this.href.baseVal}`);
+                // Try multiple alternative paths
+                const filename = this.href.baseVal.split('/').pop();
+                const currentAttempt = this.dataset.attempt || '0';
+                const attempts = [
+                    `../images/flags/${filename}`,
+                    `../../images/flags/${filename}`,
+                    `./flags/${filename}`,
+                    `../flags/${filename}`
+                ];
+                
+                const attemptNum = parseInt(currentAttempt);
+                if (attemptNum < attempts.length) {
+                    const nextPath = attempts[attemptNum];
+                    console.log(`Trying alternative path ${attemptNum + 1}: ${nextPath}`);
+                    d3.select(this)
+                        .attr('href', nextPath)
+                        .attr('data-attempt', attemptNum + 1);
+                } else {
+                    console.log(`All flag paths failed for ${filename}, hiding flag`);
+                    d3.select(this).style('display', 'none');
+                }
+            });
 
         // Add player name
         const names = cardsUpdate.selectAll('.player-name')
@@ -728,39 +881,6 @@ class RankingTimeline {
 
         // Remove any existing "Others" labels
         g.selectAll('.pie-external-label').remove();
-
-        // Handle connecting lines for player cards only (not "Others")
-        const linesData = pie(chartData).filter(d => d.data.player_name !== 'Others');
-        const lines = g.selectAll('.pie-label-line')
-            .data(linesData, d => d.data.player_name);
-
-        lines.exit()
-            .transition()
-            .duration(750)
-            .style('opacity', 0)
-            .remove();
-
-        const linesEnter = lines.enter()
-            .append('polyline')
-            .attr('class', 'pie-label-line')
-            .style('opacity', 0);
-
-        const linesUpdate = linesEnter.merge(lines);
-
-        linesUpdate
-            .transition()
-            .duration(750)
-            .style('opacity', 1)
-            .attr('points', function(d) {
-                const pos = outerArc.centroid(d);
-                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
-                // Line to player card photo
-                pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
-                const cardPos = [...pos];
-                cardPos[0] += isLeft ? -30 : 30;
-                cardPos[1] = pos[1] - 15;
-                return [arc.centroid(d), outerArc.centroid(d), cardPos].join(' ');
-            });
 
         // Add tennis ball image in the center (only once)
         if (g.select('.tennis-ball').empty()) {
