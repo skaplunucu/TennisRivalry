@@ -456,12 +456,12 @@ class RankingTimeline {
 
     renderPieChart(topPerformers) {
         const svg = d3.select('#momentum-pie-chart');
-        svg.selectAll('*').remove(); // Clear previous chart
 
         if (topPerformers.length === 0) {
+            svg.selectAll('*').remove();
             svg.append('text')
-                .attr('x', 225)
-                .attr('y', 200)
+                .attr('x', 450)
+                .attr('y', 400)
                 .attr('text-anchor', 'middle')
                 .attr('fill', '#666')
                 .style('font-size', '16px')
@@ -469,26 +469,31 @@ class RankingTimeline {
             return;
         }
 
-        const width = 900; // Doubled from 450
-        const height = 800; // Doubled from 400
-        const radius = Math.min(width, height) / 2 - 160; // Doubled margin for external labels
-        const innerRadius = radius * 0.5; // Hollow center
+        const width = 900;
+        const height = 800;
+        const radius = Math.min(width, height) / 2 - 160;
+        const innerRadius = radius * 0.5;
 
-        const g = svg.append('g')
-            .attr('transform', `translate(${width/2}, ${height/2})`);
+        // Initialize SVG group if it doesn't exist
+        let g = svg.select('g.pie-chart-group');
+        if (g.empty()) {
+            g = svg.append('g')
+                .attr('class', 'pie-chart-group')
+                .attr('transform', `translate(${width/2}, ${height/2})`);
+        }
 
         // Prepare data - limit to top 8 players, group others as "Others"
         let chartData = [...topPerformers];
         if (chartData.length > 8) {
             const top7 = chartData.slice(0, 7);
             const others = chartData.slice(7);
-            const othersTotal = others.reduce((sum, p) => sum + p.period_titles, 0);
+            const othersTotal = others.reduce((sum, p) => sum + p.momentum_score, 0);
             if (othersTotal > 0) {
                 chartData = [
                     ...top7,
                     {
                         player_name: `Others`,
-                        period_titles: othersTotal
+                        momentum_score: othersTotal
                     }
                 ];
             } else {
@@ -496,41 +501,66 @@ class RankingTimeline {
             }
         }
 
-        // Color scale with more distinct colors
-        const colors = d3.scaleOrdinal()
-            .domain(chartData.map(d => d.player_name))
-            .range([
+        // Create consistent color mapping based on player names
+        if (!this.playerColors) {
+            this.playerColors = new Map();
+            this.colorPalette = [
                 '#FF6B35', '#F7931E', '#FFD23F', '#06D6A0', 
                 '#118AB2', '#073B4C', '#9D4EDD', '#F72585'
-            ]);
+            ];
+            this.colorIndex = 0;
+        }
+
+        // Assign consistent colors to players
+        chartData.forEach(d => {
+            if (!this.playerColors.has(d.player_name)) {
+                this.playerColors.set(d.player_name, this.colorPalette[this.colorIndex % this.colorPalette.length]);
+                this.colorIndex++;
+            }
+        });
+
+        // Sort data by momentum score (largest first for clockwise arrangement)
+        chartData.sort((a, b) => b.momentum_score - a.momentum_score);
 
         // Create pie layout
         const pie = d3.pie()
             .value(d => d.momentum_score)
-            .sort(null)
-            .padAngle(0.02); // Small gap between slices
+            .sort((a, b) => b.momentum_score - a.momentum_score) // Sort by size, largest first
+            .startAngle(-Math.PI / 2) // Start at 12 o'clock (top)
+            .endAngle(3 * Math.PI / 2) // End at 12 o'clock (full circle)
+            .padAngle(0.02);
 
         // Arc generators
         const arc = d3.arc()
-            .innerRadius(innerRadius)
-            .outerRadius(radius);
+            .innerRadius(d => d.data.player_name === 'Others' ? innerRadius * 1.25 : innerRadius)
+            .outerRadius(d => d.data.player_name === 'Others' ? radius * 0.75 : radius) // Smaller radius for Others
+            .cornerRadius(8); // Add rounded corners
 
         const outerArc = d3.arc()
             .innerRadius(radius * 1.2)
             .outerRadius(radius * 1.2);
 
-        // Draw pie slices
-        const arcs = g.selectAll('.pie-slice')
-            .data(pie(chartData))
-            .enter().append('g')
+        // Bind data to pie slices with key function for object constancy
+        const arcs = g.selectAll('.arc')
+            .data(pie(chartData), d => d.data.player_name);
+
+        // Remove exiting arcs
+        arcs.exit()
+            .transition()
+            .duration(750)
+            .style('opacity', 0)
+            .remove();
+
+        // Add new arcs
+        const arcsEnter = arcs.enter()
+            .append('g')
             .attr('class', 'arc');
 
-        arcs.append('path')
+        arcsEnter.append('path')
             .attr('class', 'pie-slice')
-            .attr('d', arc)
-            .attr('fill', d => colors(d.data.player_name))
+            .attr('fill', d => this.playerColors.get(d.data.player_name))
+            .style('opacity', 0)
             .on('mouseover', function(event, d) {
-                // Show tooltip
                 const tooltip = d3.select('body').append('div')
                     .attr('class', 'pie-tooltip')
                     .style('position', 'absolute')
@@ -543,52 +573,208 @@ class RankingTimeline {
                     .style('z-index', '1000')
                     .style('left', (event.pageX + 10) + 'px')
                     .style('top', (event.pageY - 10) + 'px')
-                    .html(`${d.data.player_name}<br/>Momentum: ${d.data.momentum_score}<br/>Titles: ${d.data.titles_count || 0} | Win Rate: ${(d.data.win_rate * 100).toFixed(1)}%`);
+                    .html(`${d.data.player_name}<br/>Momentum: ${d.data.momentum_score.toFixed(1)}<br/>Titles: ${d.data.titles_count || 0} | Win Rate: ${(d.data.win_rate * 100).toFixed(1)}%`);
             })
             .on('mouseout', function() {
                 d3.selectAll('.pie-tooltip').remove();
             });
 
-        // Add external labels with connecting lines
-        const text = g.selectAll('.pie-external-label')
-            .data(pie(chartData))
-            .enter().append('text')
-            .attr('class', 'pie-external-label')
-            .attr('dy', '.35em')
-            .style('text-anchor', function(d) {
-                // if slice is on the left side of chart, text should be right-aligned
-                return (d.endAngle + d.startAngle)/2 < Math.PI ? 'start' : 'end';
-            })
+        // Update all arcs (existing and new)
+        const arcsUpdate = arcsEnter.merge(arcs);
+        
+        arcsUpdate.select('.pie-slice')
+            .transition()
+            .duration(750)
+            .style('opacity', 1)
+            .attrTween('d', function(d) {
+                const interpolate = d3.interpolate(this._current || {startAngle: 0, endAngle: 0}, d);
+                this._current = interpolate(0);
+                return function(t) {
+                    return arc(interpolate(t));
+                };
+            });
+
+        // Handle player cards for individual players (not "Others")
+        const playerCardsData = pie(chartData).filter(d => d.data.player_name !== 'Others');
+        const playerCards = g.selectAll('.player-card')
+            .data(playerCardsData, d => d.data.player_name);
+
+        playerCards.exit()
+            .transition()
+            .duration(750)
+            .style('opacity', 0)
+            .remove();
+
+        const cardsEnter = playerCards.enter()
+            .append('g')
+            .attr('class', 'player-card')
+            .style('opacity', 0);
+
+        const cardsUpdate = cardsEnter.merge(playerCards);
+
+        cardsUpdate
+            .transition()
+            .duration(750)
+            .style('opacity', 1)
             .attr('transform', function(d) {
                 const pos = outerArc.centroid(d);
-                pos[0] = radius * 1.3 * ((d.endAngle + d.startAngle)/2 < Math.PI ? 1 : -1);
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
                 return `translate(${pos})`;
-            })
-            .text(function(d) {
-                return `${d.data.player_name} (${d.data.momentum_score.toFixed(1)})`;
             });
 
-        // Add connecting lines
-        const polyline = g.selectAll('.pie-label-line')
-            .data(pie(chartData))
-            .enter().append('polyline')
+        // Add player photo (circle background)
+        const photos = cardsUpdate.selectAll('.player-photo')
+            .data(d => [d]);
+
+        photos.enter()
+            .append('circle')
+            .attr('class', 'player-photo')
+            .merge(photos)
+            .attr('cx', function(d) {
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                return isLeft ? -30 : 30;
+            })
+            .attr('cy', -15)
+            .attr('r', 25)
+            .attr('fill', '#ddd')
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 3);
+
+        // Add player photo image
+        const photoImages = cardsUpdate.selectAll('.player-photo-img')
+            .data(d => [d]);
+
+        photoImages.enter()
+            .append('image')
+            .attr('class', 'player-photo-img')
+            .merge(photoImages)
+            .attr('x', function(d) {
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                return isLeft ? -55 : 5;
+            })
+            .attr('y', -40)
+            .attr('width', 50)
+            .attr('height', 50)
+            .attr('href', d => `./images/players/${d.data.player_name.toLowerCase().replace(/\s+/g, '-')}.jpg`)
+            .style('clip-path', 'circle(25px)')
+            .on('error', function(event, d) {
+                // If photo doesn't exist, show initials
+                d3.select(this).style('display', 'none');
+                const card = d3.select(this.parentNode);
+                const initials = d.data.player_name.split(' ').map(n => n[0]).join('');
+                
+                card.select('.player-photo')
+                    .attr('fill', this.playerColors.get(d.data.player_name) || '#ddd');
+                    
+                card.append('text')
+                    .attr('class', 'player-initials')
+                    .attr('x', function() {
+                        const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                        return isLeft ? -30 : 30;
+                    })
+                    .attr('y', -10)
+                    .attr('text-anchor', 'middle')
+                    .attr('fill', 'white')
+                    .attr('font-size', '14px')
+                    .attr('font-weight', 'bold')
+                    .text(initials);
+            }.bind(this));
+
+        // Add player name
+        const names = cardsUpdate.selectAll('.player-name')
+            .data(d => [d]);
+
+        names.enter()
+            .append('text')
+            .attr('class', 'player-name')
+            .merge(names)
+            .attr('x', function(d) {
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                return isLeft ? 5 : -5;
+            })
+            .attr('y', -20)
+            .attr('text-anchor', function(d) {
+                return (d.endAngle + d.startAngle)/2 < Math.PI ? 'start' : 'end';
+            })
+            .attr('font-size', '14px')
+            .attr('font-weight', 'bold')
+            .attr('fill', '#333')
+            .text(d => d.data.player_name);
+
+        // Add titles and win rate
+        const stats = cardsUpdate.selectAll('.player-stats')
+            .data(d => [d]);
+
+        stats.enter()
+            .append('text')
+            .attr('class', 'player-stats')
+            .merge(stats)
+            .attr('x', function(d) {
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                return isLeft ? 5 : -5;
+            })
+            .attr('y', -5)
+            .attr('text-anchor', function(d) {
+                return (d.endAngle + d.startAngle)/2 < Math.PI ? 'start' : 'end';
+            })
+            .attr('font-size', '11px')
+            .attr('fill', '#888')
+            .text(d => {
+                const titles = d.data.titles_count || 0;
+                const winRate = d.data.win_rate ? (d.data.win_rate * 100).toFixed(1) : '0.0';
+                return `${titles} titles • ${winRate}% wins`;
+            });
+
+        // Remove any existing "Others" labels
+        g.selectAll('.pie-external-label').remove();
+
+        // Handle connecting lines for player cards only (not "Others")
+        const linesData = pie(chartData).filter(d => d.data.player_name !== 'Others');
+        const lines = g.selectAll('.pie-label-line')
+            .data(linesData, d => d.data.player_name);
+
+        lines.exit()
+            .transition()
+            .duration(750)
+            .style('opacity', 0)
+            .remove();
+
+        const linesEnter = lines.enter()
+            .append('polyline')
             .attr('class', 'pie-label-line')
+            .style('opacity', 0);
+
+        const linesUpdate = linesEnter.merge(lines);
+
+        linesUpdate
+            .transition()
+            .duration(750)
+            .style('opacity', 1)
             .attr('points', function(d) {
                 const pos = outerArc.centroid(d);
-                pos[0] = radius * 1.3 * ((d.endAngle + d.startAngle)/2 < Math.PI ? 1 : -1);
-                return [arc.centroid(d), outerArc.centroid(d), pos].join(' ');
+                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                // Line to player card photo
+                pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
+                const cardPos = [...pos];
+                cardPos[0] += isLeft ? -30 : 30;
+                cardPos[1] = pos[1] - 15;
+                return [arc.centroid(d), outerArc.centroid(d), cardPos].join(' ');
             });
 
-        // Add tennis ball image in the center
-        const ballSize = innerRadius * 1.8 * 1.1; // Increased by 10%
-        
-        g.append('image')
-            .attr('x', -ballSize / 2)
-            .attr('y', -ballSize / 2)
-            .attr('width', ballSize)
-            .attr('height', ballSize)
-            .attr('href', './images/tennis-ball.png') // You'll need to add this image
-            .style('clip-path', 'circle(50%)'); // Make it circular
+        // Add tennis ball image in the center (only once)
+        if (g.select('.tennis-ball').empty()) {
+            const ballSize = innerRadius * 1.8 * 1.1;
+            
+            g.append('image')
+                .attr('class', 'tennis-ball')
+                .attr('x', -ballSize / 2)
+                .attr('y', -ballSize / 2)
+                .attr('width', ballSize)
+                .attr('height', ballSize)
+                .attr('href', './images/tennis-ball.png')
+                .style('clip-path', 'circle(50%)');
+        }
     }
 
     updateDate() {
