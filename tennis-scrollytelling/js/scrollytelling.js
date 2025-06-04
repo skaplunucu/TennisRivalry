@@ -461,7 +461,23 @@ class RankingTimeline {
 
     renderRankings() {
         const table = document.getElementById('ranking-table');
+        const header = document.getElementById('ranking-header');
         const currentTimepoint = this.data[this.currentIndex];
+
+        // Update header with current date
+        const date = new Date(currentTimepoint.date);
+        const formattedDate = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        if (header) {
+            header.textContent = `Ranking • ${formattedDate}`;
+            console.log(`Updated ranking header to: Ranking • ${formattedDate}`);
+        } else {
+            console.log('Header element not found!');
+        }
 
         table.innerHTML = '';
 
@@ -694,7 +710,8 @@ class RankingTimeline {
             .attr('stroke', 'rgba(255, 255, 255, 0.9)')
             .attr('stroke-width', 1)
             .attr('rx', 12)
-            .attr('ry', 12);
+            .attr('ry', 12)
+            .style('opacity', 0.9);
 
         const cardsUpdate = cardsEnter.merge(playerCards);
 

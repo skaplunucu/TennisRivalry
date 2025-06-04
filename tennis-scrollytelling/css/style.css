@@ -5,191 +5,181 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
-    background: #f5f5f5;
-    color: #333;
-}
-
-/* Draggable year indicator - moves along timeline */
-.year-indicator {
-    position: absolute;
-    right: -15px;
-    background: #0066cc;
+    font-family: 'Ubuntu', sans-serif;
+    /* Clay court background image - try multiple paths */
+    background: url('../images/clay_bg.png');
+    background-position: center center;
+    background-attachment: fixed;
+    background-size: cover;
+    background-repeat: no-repeat;
+    /* Fallback gradient if image doesn't load */
+    background-color: #A0522D;
     color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: bold;
-    z-index: 300;
-    cursor: grab;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    user-select: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    min-height: 100vh;
+    position: relative;
 }
 
-.year-indicator:hover {
-    background: #0052a3;
-    transform: scale(1.05);
+/* Darker overlay to dim the background */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+    z-index: 1;
 }
 
-.year-indicator:active {
-    cursor: grabbing;
-    transform: scale(0.95);
+/* Page Title and Subtitle */
+.page-header {
+    position: fixed;
+    top: 60px;
+    left: 65%;
+    text-align: left;
+    z-index: 150;
 }
 
-/* Background ATP Rankings - top left corner */
+.page-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 1px;
+}
+
+.page-subtitle {
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    letter-spacing: 0.5px;
+}
+
+/* ATP Rankings - expanded and with logo space */
 .ranking-container {
     position: fixed;
     top: 20px;
     left: 20px;
-    width: 350px;
-    height: 400px;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    padding: 15px;
-    z-index: 10;
-    backdrop-filter: blur(5px);
+    width: 450px; /* Increased from 350px */
+    height: 480px; /* Increased from 400px */
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    padding: 20px;
+    z-index: 50; /* Increased from 10 */
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Foreground Momentum Chart - center */
-.momentum-container {
-    position: fixed;
-    top: 50%;
-    left: calc(50% + 15%); /* Moved 15% to the right */
-    transform: translate(-50%, -50%);
-    width: 1100px; /* Doubled from 550px */
-    height: 1000px; /* Doubled from 500px */
-    background: transparent;
-    padding: 0;
-    z-index: 100;
+.ranking-header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #FF6B35;
+}
+
+.atp-logo-img {
+    width: 90px;
+    height: 60px;
+    object-fit: contain;
 }
 
 .table-header {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 12px;
-    text-align: center;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #0066cc;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: left;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 .ranking-header {
-    color: #0066cc;
-    font-size: 16px;
+    color: white;
+    font-size: 18px;
 }
 
 .momentum-header {
-    display: none; /* Hide the header */
+    display: none;
 }
 
-.ranking-table, .momentum-table {
+.ranking-table {
     width: 100%;
 }
 
 .ranking-row {
     display: flex;
     align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid #eee;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
-    font-size: 13px;
+    font-size: 14px;
+}
+
+.ranking-row:hover {
+    background: rgba(255, 107, 53, 0.2);
+    border-radius: 6px;
 }
 
 .rank-number {
-    font-size: 14px;
-    font-weight: bold;
-    color: #0066cc;
-    width: 25px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #FF6B35;
+    width: 35px;
     text-align: center;
-}
-
-.momentum-number {
-    font-size: 20px;
-    font-weight: bold;
-    color: #ff6b35;
-    width: 40px;
-    text-align: center;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
 }
 
 .player-name {
     flex: 1;
-    font-size: 13px;
-    margin-left: 10px;
+    font-size: 14px;
+    margin-left: 15px;
+    color: white;
+    font-weight: 500;
 }
 
 .player-points {
-    font-size: 11px;
-    font-weight: bold;
-    color: #666;
-    width: 60px;
-    text-align: right;
-}
-
-.player-titles {
-    font-size: 14px;
-    font-weight: bold;
-    color: #ff6b35;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
     width: 80px;
     text-align: right;
 }
 
-/* Summary info */
-.momentum-summary {
-    display: none; /* Hide the summary */
+/* Momentum Chart - center */
+.momentum-container {
+    position: fixed;
+    top: 50%;
+    left: calc(50% + 10%);
+    transform: translate(-50%, -50%);
+    width: 1100px;
+    height: 1000px;
+    background: transparent;
+    padding: 0;
+    z-index: 100;
 }
 
-/* Pie chart container */
+.momentum-summary {
+    display: none;
+}
+
 .pie-chart-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 1000px; /* Doubled height */
+    height: 1000px;
 }
 
 #momentum-pie-chart {
     max-width: 100%;
     height: 100%;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
 }
 
-/* Pie chart styles */
-.pie-slice {
-    stroke: white;
-    stroke-width: 3;
-    cursor: pointer;
-    transition: opacity 0.3s;
-}
-
-.pie-slice:hover {
-    opacity: 0.8;
-}
-
-.pie-external-label {
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    font-weight: bold;
-    text-anchor: middle;
-    fill: #333;
-    pointer-events: none;
-}
-
-.pie-label-line {
-    stroke: #999;
-    stroke-width: 1;
-    fill: none;
-}
-
-.pie-title-count {
-    font-family: Arial, sans-serif;
-    font-size: 18px;
-    font-weight: bold;
-    text-anchor: middle;
-    fill: #ff6b35;
-    pointer-events: none;
-}
-
-/* Timeline Navigation - right edge */
+/* Timeline Navigation - right edge with white styling */
 .timeline-container {
     position: fixed;
     right: 30px;
@@ -213,64 +203,124 @@ body {
 .timeline-year {
     position: relative;
     right: 0;
-    width: 20px;
-    height: 1px;
-    background: #ddd;
+    width: 25px; /* Increased from 20px */
+    height: 2px; /* Increased from 1px */
+    background: rgba(255, 255, 255, 0.6);
     transition: all 0.3s ease;
     cursor: pointer;
 }
 
 .timeline-year.current {
-    height: 2px;
-    background: #0066cc;
-    width: 60px; /* 300% of base 20px */
+    height: 4px; /* Increased from 3px */
+    background: white;
+    width: 75px; /* Increased from 60px */
+    box-shadow: 0 0 10px rgba(255,255,255,0.8);
 }
 
 .timeline-year.current-prev-1,
 .timeline-year.current-next-1 {
-    height: 1.5px;
-    background: #4d88cc;
-    width: 40px; /* 200% of base 20px */
+    height: 3px; /* Increased from 2px */
+    background: rgba(255, 255, 255, 0.8) !important; /* Force white color */
+    width: 50px; /* Increased from 40px */
 }
 
 .timeline-year.current-prev-2,
 .timeline-year.current-next-2 {
-    height: 1.2px;
-    background: #7aa3d1;
-    width: 30px; /* 150% of base 20px */
+    height: 2.5px; /* Increased from 1.5px */
+    background: rgba(255, 255, 255, 0.7) !important; /* Force white color */
+    width: 40px; /* Increased from 30px */
 }
 
 .timeline-year.decade {
-    background: #999;
-    height: 1.5px;
-    width: 30px;
+    background: rgba(255, 255, 255, 0.9);
+    height: 3px; /* Increased from 2px */
+    width: 40px; /* Increased from 30px */
 }
 
 .timeline-year-label {
     position: absolute;
-    right: 35px;
-    top: -8px;
-    font-size: 11px;
-    font-weight: bold;
-    color: #666;
+    right: 45px; /* Adjusted for thicker bars */
+    top: -12px; /* Adjusted for larger text */
+    font-size: 13px; /* Increased from 11px */
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
     white-space: nowrap;
     opacity: 0;
     transition: all 0.3s ease;
     pointer-events: none;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 .timeline-year.decade .timeline-year-label {
     opacity: 1;
-    color: #333;
-    font-size: 12px;
+    color: white;
+    font-size: 14px; /* Increased from 12px */
+    font-weight: 700;
 }
 
 .timeline-year.current .timeline-year-label {
     opacity: 1;
-    color: #0066cc;
-    font-size: 13px;
-    font-weight: bold;
-    right: 65px; /* Adjusted for wider bar */
+    color: white;
+    font-size: 15px; /* Increased from 13px */
+    font-weight: 700;
+    right: 80px; /* Adjusted for wider bar */
+    text-shadow: 0 0 5px rgba(255,255,255,0.8);
+}
+
+/* Data information blocks at bottom */
+.data-info {
+    position: fixed;
+    bottom: 30px;
+    height: 160px;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 20px 25px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    z-index: 50;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.key-dates {
+    width: 380px;
+    left: calc(50% - 450px);
+}
+
+.momentum-methodology {
+    width: 650px;
+    right: calc(50% - 650px);
+}
+
+.data-info h4 {
+    color: #FF6B35;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.data-info p {
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+}
+
+.data-info ul {
+    margin: 0;
+    padding-left: 15px;
+    list-style-type: disc;
+}
+
+.data-info li {
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 5px;
+}
+
+.data-info li:last-child {
+    margin-bottom: 0;
 }
 
 /* Scroll sections - invisible but functional */
@@ -281,14 +331,14 @@ body {
     pointer-events: none;
 }
 
-/* Remove scrolling handles completely */
+/* Hide scrollbars */
 html {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;     /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 html::-webkit-scrollbar {
-    display: none;            /* Safari and Chrome */
+    display: none;
 }
 
 body {
@@ -300,7 +350,6 @@ body::-webkit-scrollbar {
     display: none;
 }
 
-/* Also hide any container scrollbars */
 *::-webkit-scrollbar {
     display: none;
 }
@@ -308,4 +357,88 @@ body::-webkit-scrollbar {
 * {
     -ms-overflow-style: none;
     scrollbar-width: none;
+}
+
+/* Pie chart specific white text styling */
+.pie-slice {
+    stroke: white;
+    stroke-width: 3;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.pie-slice:hover {
+    opacity: 0.8;
+}
+
+.pie-label-line {
+    stroke: rgba(255, 255, 255, 0.7);
+    stroke-width: 1;
+    fill: none;
+}
+
+/* Player cards on pie chart with better contrast */
+.player-card .player-name {
+    fill: white !important;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.player-card .player-stats {
+    fill: rgba(255, 255, 255, 0.8) !important;
+    font-weight: 500;
+}
+
+.player-card-bg {
+    fill: rgba(0, 0, 0, 0.7) !important;
+    stroke: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Ubuntu Font Utility Classes */
+.ubuntu-light {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 300;
+    font-style: normal;
+}
+
+.ubuntu-regular {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.ubuntu-medium {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 500;
+    font-style: normal;
+}
+
+.ubuntu-bold {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+}
+
+.ubuntu-light-italic {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 300;
+    font-style: italic;
+}
+
+.ubuntu-regular-italic {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 400;
+    font-style: italic;
+}
+
+.ubuntu-medium-italic {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 500;
+    font-style: italic;
+}
+
+.ubuntu-bold-italic {
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 700;
+    font-style: italic;
 }

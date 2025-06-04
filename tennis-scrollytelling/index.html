@@ -3,19 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATP Rankings Timeline</title>
+    <title>Tennis Rivalries Timeline</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">The GOATs</h1>
+        <p class="page-subtitle">Best men performance in Open Era</p>
+    </div>
 
     <!-- Background ATP Rankings - top left -->
     <div class="ranking-container">
-        <div class="table-header ranking-header">ATP Rankings</div>
+        <div class="ranking-header-container">
+            <div class="table-header ranking-header" id="ranking-header">Ranking • Loading...</div>
+            <img src="images/atp_logo.png" alt="ATP Logo" class="atp-logo-img">
+        </div>
         <div class="ranking-table" id="ranking-table">
             <div>Loading rankings...</div>
         </div>
     </div>
-    
+
     <!-- Foreground Momentum Chart - center -->
     <div class="momentum-container">
         <div class="table-header momentum-header">Tennis Momentum</div>
@@ -26,10 +37,33 @@
             <svg id="momentum-pie-chart" width="1000" height="760"></svg>
         </div>
     </div>
-    
+
     <!-- Timeline Navigation - right edge -->
     <div class="timeline-container" id="timeline-container">
         <!-- Timeline years will be created by JavaScript -->
+    </div>
+
+    <!-- Key Dates Information -->
+    <div class="data-info key-dates">
+        <h4>Key Dates</h4>
+        <ul>
+            <li><strong>1968:</strong> Open Era started</li>
+            <li><strong>1972:</strong> Association of Tennis Professionals (ATP) established</li>
+            <li><strong>1973:</strong> First ATP ranking issued</li>
+            <li><strong>1990:</strong> ATP Tour started. Ranking points introduced</li>
+        </ul>
+    </div>
+
+    <!-- Momentum Methodology -->
+    <div class="data-info momentum-methodology">
+        <h4>Player performance calculation</h4>
+        <p>For each player at every period of time we calculate his performance over past calendar year including:</p>
+        <ul>
+            <li><strong>Title Score:</strong> Grand Slams (100 pts), Masters (50 pts), ATP 500 (25 pts)</li>
+            <li><strong>Win Rate Bonus:</strong> (win_rate - 50%) × 100, max 50 pts</li>
+            <li><strong>Top 10 Consistency:</strong> 0.6 pts per week in top 10, max 30 pts</li>
+            <li><strong>Current Ranking:</strong> Top 5 (20 pts), Top 10 (15 pts), Top 20 (10 pts)</li>
+        </ul>
     </div>
 
     <!-- Scroll sections container -->
