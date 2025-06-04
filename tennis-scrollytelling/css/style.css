@@ -207,50 +207,81 @@ body {
     top: 50%;
     transform: translateY(-50%);
     height: 80vh;
-    width: 100px;
+    width: 120px;
     z-index: 200;
 }
 
-.timeline-year {
+.timeline-year-wrapper {
     position: absolute;
-    right: 0;
+    right: -20px;
+    width: 100px;
     display: flex;
+    justify-content: flex-end;
     align-items: center;
-    height: 2px;
-    background: #ddd;
-    transition: all 0.3s ease;
+    cursor: pointer;
 }
 
-.timeline-year.active {
-    background: #ff6b35;
-    height: 4px;
+.timeline-year {
+    position: relative;
+    right: 0;
+    width: 20px;
+    height: 1px;
+    background: #ddd;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.timeline-year.current {
+    height: 2px;
+    background: #0066cc;
+    width: 60px; /* 300% of base 20px */
+}
+
+.timeline-year.current-prev-1,
+.timeline-year.current-next-1 {
+    height: 1.5px;
+    background: #4d88cc;
+    width: 40px; /* 200% of base 20px */
+}
+
+.timeline-year.current-prev-2,
+.timeline-year.current-next-2 {
+    height: 1.2px;
+    background: #7aa3d1;
+    width: 30px; /* 150% of base 20px */
+}
+
+.timeline-year.decade {
+    background: #999;
+    height: 1.5px;
+    width: 30px;
 }
 
 .timeline-year-label {
     position: absolute;
-    right: 15px;
-    font-size: 12px;
+    right: 35px;
+    top: -8px;
+    font-size: 11px;
     font-weight: bold;
     color: #666;
-    background: white;
-    padding: 2px 6px;
-    border-radius: 3px;
     white-space: nowrap;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
 }
 
-.timeline-year.active .timeline-year-label {
-    color: #ff6b35;
-    font-size: 14px;
+.timeline-year.decade .timeline-year-label {
+    opacity: 1;
+    color: #333;
+    font-size: 12px;
 }
 
-.timeline-progress {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 4px;
-    background: #ff6b35;
-    border-radius: 2px;
-    transition: all 0.2s ease;
+.timeline-year.current .timeline-year-label {
+    opacity: 1;
+    color: #0066cc;
+    font-size: 13px;
+    font-weight: bold;
+    right: 65px; /* Adjusted for wider bar */
 }
 
 /* Scroll sections - invisible but functional */
