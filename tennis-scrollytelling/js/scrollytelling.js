@@ -656,7 +656,7 @@ class RankingTimeline {
             .attr('y', -40)
             .attr('width', 50)
             .attr('height', 50)
-            .attr('href', d => `./images/players/${d.data.player_name.toLowerCase().replace(/\s+/g, '-')}.jpg`)
+            .attr('href', d => `./images/players/cropped/${d.data.player_name.toLowerCase().replace(/\s+/g, '-')}_cropped.png`)
             .style('clip-path', 'circle(25px)')
             .on('error', function(event, d) {
                 // If photo doesn't exist, show initials
