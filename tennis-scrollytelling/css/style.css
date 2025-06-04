@@ -10,77 +10,103 @@ body {
     color: #333;
 }
 
-/* Date display - top right */
-.date-display {
-    position: fixed;
-    top: 20px;
-    right: 20px;
+/* Draggable year indicator - moves along timeline */
+.year-indicator {
+    position: absolute;
+    right: -15px;
     background: #0066cc;
     color: white;
-    padding: 15px 25px;
-    border-radius: 8px;
-    font-size: 18px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
     font-weight: bold;
-    z-index: 100;
-    transition: all 0.3s ease;
+    z-index: 300;
+    cursor: grab;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
-/* Central ranking container - sticky */
+.year-indicator:hover {
+    background: #0052a3;
+    transform: scale(1.05);
+}
+
+.year-indicator:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+/* Background ATP Rankings - top left corner */
 .ranking-container {
-    position: sticky;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1200px;
-    max-width: 95vw;
-    margin: 0 auto;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    padding: 20px;
-    z-index: 50;
-    display: flex;
-    gap: 20px;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 350px;
+    height: 400px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 15px;
+    z-index: 10;
+    backdrop-filter: blur(5px);
 }
 
-/* Individual table containers */
-.table-section {
-    flex: 1;
+/* Foreground Momentum Chart - center */
+.momentum-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 550px;
+    height: 500px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    padding: 25px;
+    z-index: 100;
 }
 
 .table-header {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     text-align: center;
-    padding-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom: 2px solid #0066cc;
 }
 
 .ranking-header {
     color: #0066cc;
+    font-size: 16px;
 }
 
 .momentum-header {
     color: #ff6b35;
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
 .ranking-table, .momentum-table {
     width: 100%;
 }
 
-.ranking-row, .momentum-row {
+.ranking-row {
     display: flex;
     align-items: center;
-    padding: 10px 0;
+    padding: 6px 0;
     border-bottom: 1px solid #eee;
     transition: all 0.3s ease;
+    font-size: 13px;
 }
 
 .rank-number {
-    font-size: 20px;
+    font-size: 14px;
     font-weight: bold;
     color: #0066cc;
-    width: 40px;
+    width: 25px;
     text-align: center;
 }
 
@@ -94,15 +120,15 @@ body {
 
 .player-name {
     flex: 1;
-    font-size: 16px;
-    margin-left: 15px;
+    font-size: 13px;
+    margin-left: 10px;
 }
 
 .player-points {
-    font-size: 14px;
+    font-size: 11px;
     font-weight: bold;
     color: #666;
-    width: 80px;
+    width: 60px;
     text-align: right;
 }
 
@@ -174,13 +200,92 @@ body {
     pointer-events: none;
 }
 
-/* Scroll sections */
+/* Timeline Navigation - right edge */
+.timeline-container {
+    position: fixed;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 80vh;
+    width: 100px;
+    z-index: 200;
+}
+
+.timeline-year {
+    position: absolute;
+    right: 0;
+    display: flex;
+    align-items: center;
+    height: 2px;
+    background: #ddd;
+    transition: all 0.3s ease;
+}
+
+.timeline-year.active {
+    background: #ff6b35;
+    height: 4px;
+}
+
+.timeline-year-label {
+    position: absolute;
+    right: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #666;
+    background: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.timeline-year.active .timeline-year-label {
+    color: #ff6b35;
+    font-size: 14px;
+}
+
+.timeline-progress {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 4px;
+    background: #ff6b35;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+}
+
+/* Scroll sections - invisible but functional */
 .scroll-section {
     height: 100vh;
     width: 100%;
+    opacity: 0;
+    pointer-events: none;
 }
 
-/* First section with some spacing */
-.first-section {
-    padding-top: 20vh;
+/* Remove scrolling handles completely */
+html {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;     /* Firefox */
+}
+
+html::-webkit-scrollbar {
+    display: none;            /* Safari and Chrome */
+}
+
+body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+    display: none;
+}
+
+/* Also hide any container scrollbars */
+*::-webkit-scrollbar {
+    display: none;
+}
+
+* {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }

@@ -49,8 +49,8 @@ class RankingTimeline {
 
         // Continue setup after data is loaded
         this.createScrollSections();
+        this.createTimeline();
         this.renderTables();
-        this.updateDate();
         this.setupScrollama();
 
         console.log('✅ Initialization complete!');
@@ -73,6 +73,191 @@ class RankingTimeline {
         });
 
         console.log(`Created ${this.data.length} scroll sections`);
+    }
+
+    createTimeline() {
+        const container = document.getElementById('timeline-container');
+        
+        // Get years from data
+        const years = this.data.map(d => new Date(d.date).getFullYear());
+        const minYear = Math.min(...years);
+        const maxYear = Math.max(...years);
+        
+        // Create decade markers (every 10 years)
+        const timelineYears = [];
+        for (let year = Math.ceil(minYear / 10) * 10; year <= maxYear; year += 10) {
+            timelineYears.push(year);
+        }
+        
+        const timelineHeight = container.offsetHeight || 600;
+        
+        // Create year markers
+        timelineYears.forEach((year, index) => {
+            const yearDiv = document.createElement('div');
+            yearDiv.className = 'timeline-year';
+            yearDiv.setAttribute('data-year', year);
+            
+            // Position vertically
+            const topPercent = (index / (timelineYears.length - 1)) * 100;
+            yearDiv.style.top = `${topPercent}%`;
+            yearDiv.style.width = '30px';
+            
+            // Add year label
+            const label = document.createElement('div');
+            label.className = 'timeline-year-label';
+            label.textContent = year;
+            yearDiv.appendChild(label);
+            
+            container.appendChild(yearDiv);
+        });
+        
+        // Create progress indicator
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'timeline-progress';
+        progressDiv.id = 'timeline-progress';
+        container.appendChild(progressDiv);
+        
+        // Create draggable year indicator
+        const yearIndicator = document.createElement('div');
+        yearIndicator.className = 'year-indicator';
+        yearIndicator.id = 'year-indicator';
+        yearIndicator.textContent = minYear;
+        container.appendChild(yearIndicator);
+        
+        // Setup drag functionality
+        this.setupDragHandlers();
+        
+        console.log(`Created timeline with ${timelineYears.length} year markers`);
+    }
+
+    updateTimeline() {
+        const currentData = this.data[this.currentIndex];
+        const currentYear = new Date(currentData.date).getFullYear();
+        
+        // Update year marker states
+        const yearMarkers = document.querySelectorAll('.timeline-year');
+        yearMarkers.forEach(marker => {
+            const markerYear = parseInt(marker.getAttribute('data-year'));
+            if (markerYear <= currentYear) {
+                marker.classList.add('active');
+                // Extend bar length based on progress within decade
+                const nextDecade = markerYear + 10;
+                const progressInDecade = Math.min(1, (currentYear - markerYear) / 10);
+                marker.style.width = `${30 + progressInDecade * 20}px`;
+            } else {
+                marker.classList.remove('active');
+                marker.style.width = '30px';
+            }
+        });
+        
+        // Update progress indicator and year indicator position
+        const years = this.data.map(d => new Date(d.date).getFullYear());
+        const minYear = Math.min(...years);
+        const maxYear = Math.max(...years);
+        const progressPercent = (currentYear - minYear) / (maxYear - minYear) * 100;
+        
+        const progressIndicator = document.getElementById('timeline-progress');
+        if (progressIndicator) {
+            progressIndicator.style.height = `${progressPercent}%`;
+        }
+        
+        // Update year indicator position and text
+        const yearIndicator = document.getElementById('year-indicator');
+        if (yearIndicator) {
+            yearIndicator.style.top = `${progressPercent}%`;
+            yearIndicator.style.transform = 'translateY(-50%)';
+            yearIndicator.textContent = currentYear;
+        }
+    }
+
+    setupDragHandlers() {
+        const yearIndicator = document.getElementById('year-indicator');
+        const timelineContainer = document.getElementById('timeline-container');
+        let isDragging = false;
+        let startY = 0;
+        let startTop = 0;
+
+        const handleMouseDown = (e) => {
+            isDragging = true;
+            startY = e.clientY;
+            const rect = timelineContainer.getBoundingClientRect();
+            startTop = e.clientY - rect.top;
+            yearIndicator.style.transition = 'none';
+            e.preventDefault();
+        };
+
+        const handleMouseMove = (e) => {
+            if (!isDragging) return;
+
+            const rect = timelineContainer.getBoundingClientRect();
+            const containerHeight = rect.height;
+            let newTop = e.clientY - rect.top;
+            
+            // Constrain to container bounds
+            newTop = Math.max(0, Math.min(containerHeight, newTop));
+            
+            // Calculate progress percentage
+            const progressPercent = (newTop / containerHeight) * 100;
+            
+            // Update year indicator position
+            yearIndicator.style.top = `${progressPercent}%`;
+            
+            // Calculate corresponding data index
+            const dataIndex = Math.round((progressPercent / 100) * (this.data.length - 1));
+            
+            // Update visualization if index changed
+            if (dataIndex !== this.currentIndex && dataIndex >= 0 && dataIndex < this.data.length) {
+                this.currentIndex = dataIndex;
+                this.renderTables();
+                this.updateYearIndicatorText();
+                
+                // Scroll to corresponding section
+                const scrollContainer = document.getElementById('scroll-container');
+                const sections = scrollContainer.children;
+                if (sections[dataIndex]) {
+                    sections[dataIndex].scrollIntoView({ behavior: 'instant' });
+                }
+            }
+            
+            e.preventDefault();
+        };
+
+        const handleMouseUp = () => {
+            if (isDragging) {
+                isDragging = false;
+                yearIndicator.style.transition = 'all 0.2s ease';
+                this.updateTimeline(); // Ensure final state is correct
+            }
+        };
+
+        // Mouse events
+        yearIndicator.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        // Touch events for mobile
+        yearIndicator.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            handleMouseDown({ clientY: touch.clientY, preventDefault: () => e.preventDefault() });
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                const touch = e.touches[0];
+                handleMouseMove({ clientY: touch.clientY, preventDefault: () => e.preventDefault() });
+            }
+        });
+
+        document.addEventListener('touchend', handleMouseUp);
+    }
+
+    updateYearIndicatorText() {
+        const currentData = this.data[this.currentIndex];
+        const currentYear = new Date(currentData.date).getFullYear();
+        const yearIndicator = document.getElementById('year-indicator');
+        if (yearIndicator) {
+            yearIndicator.textContent = currentYear;
+        }
     }
 
     renderTables() {
@@ -295,7 +480,7 @@ class RankingTimeline {
                 if (newIndex !== this.currentIndex) {
                     this.currentIndex = newIndex;
                     this.renderTables();
-                    this.updateDate();
+                    this.updateTimeline();
 
                     console.log(`Timepoint ${newIndex + 1}/${this.data.length}: ${this.data[newIndex].date}`);
                 }

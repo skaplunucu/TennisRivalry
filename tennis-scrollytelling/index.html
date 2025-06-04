@@ -7,35 +7,33 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- Date display -->
-    <div class="date-display" id="current-date">
-        Loading...
+
+    <!-- Background ATP Rankings - top left -->
+    <div class="ranking-container">
+        <div class="table-header ranking-header">ATP Rankings</div>
+        <div class="ranking-table" id="ranking-table">
+            <div>Loading rankings...</div>
+        </div>
+    </div>
+    
+    <!-- Foreground Momentum Chart - center -->
+    <div class="momentum-container">
+        <div class="table-header momentum-header">Tennis Momentum</div>
+        <div class="momentum-summary" id="momentum-summary">
+            Loading momentum data...
+        </div>
+        <div class="pie-chart-container">
+            <svg id="momentum-pie-chart" width="500" height="380"></svg>
+        </div>
+    </div>
+    
+    <!-- Timeline Navigation - right edge -->
+    <div class="timeline-container" id="timeline-container">
+        <!-- Timeline years will be created by JavaScript -->
     </div>
 
     <!-- Scroll sections container -->
     <div id="scroll-container">
-        <!-- Central dual tables -->
-        <div class="ranking-container">
-            <!-- Rankings section -->
-            <div class="table-section">
-                <div class="table-header ranking-header">ATP Rankings</div>
-                <div class="ranking-table" id="ranking-table">
-                    <div>Loading rankings...</div>
-                </div>
-            </div>
-            
-            <!-- Momentum section -->
-            <div class="table-section">
-                <div class="table-header momentum-header">Title Momentum</div>
-                <div class="momentum-summary" id="momentum-summary">
-                    Loading momentum data...
-                </div>
-                <div class="pie-chart-container">
-                    <svg id="momentum-pie-chart" width="450" height="400"></svg>
-                </div>
-            </div>
-        </div>
-
         <!-- Scroll sections will be created by JavaScript -->
     </div>
 
