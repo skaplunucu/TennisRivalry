@@ -57,14 +57,12 @@ body {
 .momentum-container {
     position: fixed;
     top: 50%;
-    left: 50%;
+    left: calc(50% + 15%); /* Moved 15% to the right */
     transform: translate(-50%, -50%);
-    width: 550px;
-    height: 500px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-    padding: 25px;
+    width: 1100px; /* Doubled from 550px */
+    height: 1000px; /* Doubled from 500px */
+    background: transparent;
+    padding: 0;
     z-index: 100;
 }
 
@@ -83,10 +81,7 @@ body {
 }
 
 .momentum-header {
-    color: #ff6b35;
-    font-size: 22px;
-    text-align: center;
-    margin-bottom: 20px;
+    display: none; /* Hide the header */
 }
 
 .ranking-table, .momentum-table {
@@ -142,13 +137,7 @@ body {
 
 /* Summary info */
 .momentum-summary {
-    background: #fff3e0;
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 15px;
-    text-align: center;
-    font-size: 14px;
-    color: #e65100;
+    display: none; /* Hide the summary */
 }
 
 /* Pie chart container */
@@ -156,7 +145,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 400px;
+    height: 1000px; /* Doubled height */
 }
 
 #momentum-pie-chart {

@@ -469,9 +469,9 @@ class RankingTimeline {
             return;
         }
 
-        const width = 450;
-        const height = 400;
-        const radius = Math.min(width, height) / 2 - 80; // More margin for external labels
+        const width = 900; // Doubled from 450
+        const height = 800; // Doubled from 400
+        const radius = Math.min(width, height) / 2 - 160; // Doubled margin for external labels
         const innerRadius = radius * 0.5; // Hollow center
 
         const g = svg.append('g')
@@ -579,19 +579,16 @@ class RankingTimeline {
                 return [arc.centroid(d), outerArc.centroid(d), pos].join(' ');
             });
 
-        // Add center momentum score
-        const totalMomentum = d3.sum(chartData, d => d.momentum_score);
-        g.append('text')
-            .attr('class', 'pie-title-count')
-            .attr('y', -10)
-            .text(totalMomentum.toFixed(1));
-
-        g.append('text')
-            .attr('class', 'pie-external-label')
-            .attr('y', 15)
-            .style('font-size', '14px')
-            .style('fill', '#666')
-            .text('momentum');
+        // Add tennis ball image in the center
+        const ballSize = innerRadius * 1.8 * 1.1; // Increased by 10%
+        
+        g.append('image')
+            .attr('x', -ballSize / 2)
+            .attr('y', -ballSize / 2)
+            .attr('width', ballSize)
+            .attr('height', ballSize)
+            .attr('href', './images/tennis-ball.png') // You'll need to add this image
+            .style('clip-path', 'circle(50%)'); // Make it circular
     }
 
     updateDate() {
