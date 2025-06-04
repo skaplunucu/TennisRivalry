@@ -13,8 +13,8 @@ class RankingTimeline {
 
     async loadData() {
         try {
-            console.log('Loading monthly_title_momentum_data.json...');
-            const response = await fetch('./data/monthly_title_momentum_data.json');
+            console.log('Loading momentum_score_data.json...');
+            const response = await fetch('./data/momentum_score_data.json');
             this.data = await response.json();
             console.log(`✅ Loaded ${this.data.length} monthly timepoints from ${this.data[0].date} to ${this.data[this.data.length-1].date}`);
         } catch (error) {
@@ -110,9 +110,9 @@ class RankingTimeline {
         const currentTimepoint = this.data[this.currentIndex];
 
         // Update summary
-        const totalTitles = currentTimepoint.total_period_titles || 0;
+        const totalMomentum = currentTimepoint.total_momentum || 0;
         const topPerformers = currentTimepoint.top || [];
-        summaryEl.innerHTML = `${totalTitles} titles won in past year by ${topPerformers.length} players`;
+        summaryEl.innerHTML = `Total momentum: ${totalMomentum.toFixed(1)} across ${topPerformers.length} players`;
 
         // Render pie chart
         this.renderPieChart(topPerformers);
@@ -129,7 +129,7 @@ class RankingTimeline {
                 .attr('text-anchor', 'middle')
                 .attr('fill', '#666')
                 .style('font-size', '16px')
-                .text('No titles won in past year');
+                .text('No momentum detected');
             return;
         }
 
@@ -170,7 +170,7 @@ class RankingTimeline {
 
         // Create pie layout
         const pie = d3.pie()
-            .value(d => d.period_titles)
+            .value(d => d.momentum_score)
             .sort(null)
             .padAngle(0.02); // Small gap between slices
 
@@ -207,7 +207,7 @@ class RankingTimeline {
                     .style('z-index', '1000')
                     .style('left', (event.pageX + 10) + 'px')
                     .style('top', (event.pageY - 10) + 'px')
-                    .html(`${d.data.player_name}<br/>${d.data.period_titles} titles`);
+                    .html(`${d.data.player_name}<br/>Momentum: ${d.data.momentum_score}<br/>Titles: ${d.data.titles_count || 0} | Win Rate: ${(d.data.win_rate * 100).toFixed(1)}%`);
             })
             .on('mouseout', function() {
                 d3.selectAll('.pie-tooltip').remove();
@@ -229,7 +229,7 @@ class RankingTimeline {
                 return `translate(${pos})`;
             })
             .text(function(d) {
-                return `${d.data.player_name} (${d.data.period_titles})`;
+                return `${d.data.player_name} (${d.data.momentum_score.toFixed(1)})`;
             });
 
         // Add connecting lines
@@ -243,19 +243,19 @@ class RankingTimeline {
                 return [arc.centroid(d), outerArc.centroid(d), pos].join(' ');
             });
 
-        // Add center title count
-        const totalTitles = d3.sum(chartData, d => d.period_titles);
+        // Add center momentum score
+        const totalMomentum = d3.sum(chartData, d => d.momentum_score);
         g.append('text')
             .attr('class', 'pie-title-count')
             .attr('y', -10)
-            .text(totalTitles);
+            .text(totalMomentum.toFixed(1));
 
         g.append('text')
             .attr('class', 'pie-external-label')
             .attr('y', 15)
             .style('font-size', '14px')
             .style('fill', '#666')
-            .text('titles');
+            .text('momentum');
     }
 
     updateDate() {
