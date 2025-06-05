@@ -442,3 +442,67 @@ body::-webkit-scrollbar {
     font-weight: 700;
     font-style: italic;
 }
+
+/* Line Charts Container */
+.line-charts-container {
+    position: fixed;
+    bottom: 210px;
+    left: 20px;
+    display: flex;
+    gap: 20px;
+    z-index: 60;
+}
+
+.chart-container {
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Line chart specific styles */
+#most-matches-chart .bar,
+#most-titles-chart .bar {
+    transition: opacity 0.2s ease;
+}
+
+#most-matches-chart .bar:hover,
+#most-titles-chart .bar:hover {
+    opacity: 0.7;
+}
+
+#most-matches-chart .player-label,
+#most-titles-chart .player-label {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 500;
+}
+
+#most-matches-chart .value-label,
+#most-titles-chart .value-label {
+    font-family: 'Ubuntu', sans-serif;
+    font-weight: 400;
+}
+
+#most-matches-chart text,
+#most-titles-chart text {
+    fill: white;
+}
+
+#most-matches-chart .domain,
+#most-titles-chart .domain {
+    stroke: rgba(255, 255, 255, 0.6);
+}
+
+#most-matches-chart .tick line,
+#most-titles-chart .tick line {
+    stroke: rgba(255, 255, 255, 0.4);
+}
+
+#most-matches-chart .tick text,
+#most-titles-chart .tick text {
+    fill: rgba(255, 255, 255, 0.8);
+    font-family: 'Ubuntu', sans-serif;
+    font-size: 10px;
+}

@@ -1,6 +1,8 @@
 class RankingTimeline {
     constructor() {
         this.data = null;
+        this.mostMatchesData = null;
+        this.mostTitlesData = null;
         this.currentIndex = 0;
         this.scroller = null;
         this.init();
@@ -50,10 +52,14 @@ class RankingTimeline {
         // Load player nationality data
         await this.loadPlayerNationalities();
 
+        // Load line chart data
+        await this.loadLineChartData();
+
         // Continue setup after data is loaded
         this.createScrollSections();
         this.createTimeline();
         this.renderTables();
+        this.renderLineCharts();
         this.updateTimeline(); // Initialize timeline highlighting for first date
         this.setupScrollama();
 
@@ -76,6 +82,27 @@ class RankingTimeline {
         } catch (error) {
             console.log('❌ Failed to load player nationalities:', error.message);
             this.playerNationalities = new Map();
+        }
+    }
+
+    async loadLineChartData() {
+        try {
+            console.log('Loading line chart data...');
+            
+            // Load most matches data
+            const matchesResponse = await fetch('./data/most_matches_data.json');
+            this.mostMatchesData = await matchesResponse.json();
+            console.log(`✅ Loaded ${this.mostMatchesData.length} timepoints for most matches`);
+            
+            // Load most titles data
+            const titlesResponse = await fetch('./data/most_titles_data.json');
+            this.mostTitlesData = await titlesResponse.json();
+            console.log(`✅ Loaded ${this.mostTitlesData.length} timepoints for most titles`);
+            
+        } catch (error) {
+            console.log('❌ Failed to load line chart data:', error.message);
+            this.mostMatchesData = [];
+            this.mostTitlesData = [];
         }
     }
 
@@ -457,6 +484,7 @@ class RankingTimeline {
     renderTables() {
         this.renderRankings();
         this.renderMomentum();
+        this.renderLineCharts();
     }
 
     renderRankings() {
@@ -948,6 +976,185 @@ class RankingTimeline {
                 .attr('href', './images/tennis-ball.png')
                 .style('clip-path', 'circle(50%)');
         }
+    }
+
+    renderLineCharts() {
+        if (!this.mostMatchesData || !this.mostTitlesData || this.mostMatchesData.length === 0 || this.mostTitlesData.length === 0) {
+            return;
+        }
+
+        this.renderMostMatchesChart();
+        this.renderMostTitlesChart();
+    }
+
+    renderMostMatchesChart() {
+        const currentTimepoint = this.mostMatchesData[this.currentIndex];
+        if (!currentTimepoint) return;
+
+        const svg = d3.select('#most-matches-chart');
+        if (svg.empty()) return;
+
+        svg.selectAll('*').remove();
+
+        const margin = { top: 20, right: 30, bottom: 40, left: 60 };
+        const width = 400 - margin.left - margin.right;
+        const height = 300 - margin.top - margin.bottom;
+
+        const g = svg.append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        // Get top 10 players from current timepoint
+        const players = currentTimepoint.top_players.slice(0, 10);
+        
+        // Create scales
+        const xScale = d3.scaleLinear()
+            .domain([0, d3.max(players, d => d.total_matches)])
+            .range([0, width]);
+
+        const yScale = d3.scaleBand()
+            .domain(players.map((d, i) => i))
+            .range([0, height])
+            .padding(0.1);
+
+        // Create bars
+        g.selectAll('.bar')
+            .data(players)
+            .enter()
+            .append('rect')
+            .attr('class', 'bar')
+            .attr('x', 0)
+            .attr('y', (d, i) => yScale(i))
+            .attr('width', d => xScale(d.total_matches))
+            .attr('height', yScale.bandwidth())
+            .attr('fill', '#4a90e2')
+            .attr('opacity', 0.8);
+
+        // Add player names
+        g.selectAll('.player-label')
+            .data(players)
+            .enter()
+            .append('text')
+            .attr('class', 'player-label')
+            .attr('x', -5)
+            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
+            .attr('dy', '0.35em')
+            .attr('text-anchor', 'end')
+            .attr('font-size', '10px')
+            .attr('fill', '#333')
+            .text(d => d.player_name.split(' ').slice(-1)[0]); // Last name only
+
+        // Add value labels
+        g.selectAll('.value-label')
+            .data(players)
+            .enter()
+            .append('text')
+            .attr('class', 'value-label')
+            .attr('x', d => xScale(d.total_matches) + 3)
+            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
+            .attr('dy', '0.35em')
+            .attr('font-size', '9px')
+            .attr('fill', '#666')
+            .text(d => d.total_matches);
+
+        // Add x-axis
+        g.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(xScale).ticks(5));
+
+        // Add title
+        svg.append('text')
+            .attr('x', width / 2 + margin.left)
+            .attr('y', margin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '14px')
+            .attr('font-weight', 'bold')
+            .attr('fill', '#333')
+            .text('Most Career Matches');
+    }
+
+    renderMostTitlesChart() {
+        const currentTimepoint = this.mostTitlesData[this.currentIndex];
+        if (!currentTimepoint) return;
+
+        const svg = d3.select('#most-titles-chart');
+        if (svg.empty()) return;
+
+        svg.selectAll('*').remove();
+
+        const margin = { top: 20, right: 30, bottom: 40, left: 60 };
+        const width = 400 - margin.left - margin.right;
+        const height = 300 - margin.top - margin.bottom;
+
+        const g = svg.append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        // Get top 10 players from current timepoint
+        const players = currentTimepoint.top_players.slice(0, 10);
+        
+        // Create scales
+        const xScale = d3.scaleLinear()
+            .domain([0, d3.max(players, d => d.total_titles)])
+            .range([0, width]);
+
+        const yScale = d3.scaleBand()
+            .domain(players.map((d, i) => i))
+            .range([0, height])
+            .padding(0.1);
+
+        // Create bars
+        g.selectAll('.bar')
+            .data(players)
+            .enter()
+            .append('rect')
+            .attr('class', 'bar')
+            .attr('x', 0)
+            .attr('y', (d, i) => yScale(i))
+            .attr('width', d => xScale(d.total_titles))
+            .attr('height', yScale.bandwidth())
+            .attr('fill', '#f39c12')
+            .attr('opacity', 0.8);
+
+        // Add player names
+        g.selectAll('.player-label')
+            .data(players)
+            .enter()
+            .append('text')
+            .attr('class', 'player-label')
+            .attr('x', -5)
+            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
+            .attr('dy', '0.35em')
+            .attr('text-anchor', 'end')
+            .attr('font-size', '10px')
+            .attr('fill', '#333')
+            .text(d => d.player_name.split(' ').slice(-1)[0]); // Last name only
+
+        // Add value labels
+        g.selectAll('.value-label')
+            .data(players)
+            .enter()
+            .append('text')
+            .attr('class', 'value-label')
+            .attr('x', d => xScale(d.total_titles) + 3)
+            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
+            .attr('dy', '0.35em')
+            .attr('font-size', '9px')
+            .attr('fill', '#666')
+            .text(d => d.total_titles);
+
+        // Add x-axis
+        g.append('g')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(xScale).ticks(5));
+
+        // Add title
+        svg.append('text')
+            .attr('x', width / 2 + margin.left)
+            .attr('y', margin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '14px')
+            .attr('font-weight', 'bold')
+            .attr('fill', '#333')
+            .text('Most Career Titles');
     }
 
     updateDate() {
