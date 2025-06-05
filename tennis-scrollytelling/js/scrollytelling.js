@@ -87,22 +87,16 @@ class RankingTimeline {
 
     async loadLineChartData() {
         try {
-            console.log('Loading line chart data...');
+            console.log('Loading accumulated stats timeline...');
             
-            // Load most matches data
-            const matchesResponse = await fetch('./data/most_matches_data.json');
-            this.mostMatchesData = await matchesResponse.json();
-            console.log(`✅ Loaded ${this.mostMatchesData.length} timepoints for most matches`);
-            
-            // Load most titles data
-            const titlesResponse = await fetch('./data/most_titles_data.json');
-            this.mostTitlesData = await titlesResponse.json();
-            console.log(`✅ Loaded ${this.mostTitlesData.length} timepoints for most titles`);
+            // Load accumulated stats timeline data
+            const accumulatedResponse = await fetch('./data/accumulated_stats_timeline.json');
+            this.accumulatedData = await accumulatedResponse.json();
+            console.log(`✅ Loaded ${this.accumulatedData.length} timepoints for accumulated stats`);
             
         } catch (error) {
-            console.log('❌ Failed to load line chart data:', error.message);
-            this.mostMatchesData = [];
-            this.mostTitlesData = [];
+            console.log('❌ Failed to load accumulated stats data:', error.message);
+            this.accumulatedData = [];
         }
     }
 
@@ -979,87 +973,230 @@ class RankingTimeline {
     }
 
     renderLineCharts() {
-        if (!this.mostMatchesData || !this.mostTitlesData || this.mostMatchesData.length === 0 || this.mostTitlesData.length === 0) {
+        if (!this.accumulatedData || this.accumulatedData.length === 0) {
             return;
         }
 
-        this.renderMostMatchesChart();
-        this.renderMostTitlesChart();
+        this.renderMostMatchesLineChart();
+        this.renderMostTitlesLineChart();
     }
 
-    renderMostMatchesChart() {
-        const currentTimepoint = this.mostMatchesData[this.currentIndex];
-        if (!currentTimepoint) return;
-
+    renderMostMatchesLineChart() {
         const svg = d3.select('#most-matches-chart');
         if (svg.empty()) return;
 
         svg.selectAll('*').remove();
 
-        const margin = { top: 20, right: 30, bottom: 40, left: 60 };
+        const margin = { top: 30, right: 20, bottom: 40, left: 50 };
         const width = 400 - margin.left - margin.right;
         const height = 300 - margin.top - margin.bottom;
 
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        // Get top 10 players from current timepoint
-        const players = currentTimepoint.top_players.slice(0, 10);
-        
+        // Get top 10 players from final timepoint for consistent tracking
+        const finalTimepoint = this.accumulatedData[this.accumulatedData.length - 1];
+        const topPlayers = finalTimepoint.rank.slice(0, 10).map(p => p.player_name);
+
+        // Create color scale for players
+        const colorScale = d3.scaleOrdinal()
+            .domain(topPlayers)
+            .range(['#FF6B35', '#F7931E', '#FFD23F', '#06D6A0', '#118AB2', '#9D4EDD', '#F72585', '#E85D04', '#2A9D8F', '#264653']);
+
+        // Prepare data for each player across all timepoints
+        const playerData = topPlayers.map(playerName => ({
+            name: playerName,
+            values: this.accumulatedData.map(timepoint => {
+                const player = timepoint.rank.find(p => p.player_name === playerName);
+                return {
+                    date: new Date(timepoint.date),
+                    matches: player ? player.acc_games : 0
+                };
+            })
+        }));
+
         // Create scales
-        const xScale = d3.scaleLinear()
-            .domain([0, d3.max(players, d => d.total_matches)])
+        const xScale = d3.scaleTime()
+            .domain(d3.extent(this.accumulatedData, d => new Date(d.date)))
             .range([0, width]);
 
-        const yScale = d3.scaleBand()
-            .domain(players.map((d, i) => i))
-            .range([0, height])
-            .padding(0.1);
+        const maxMatches = d3.max(playerData, d => d3.max(d.values, v => v.matches));
+        const yScale = d3.scaleLinear()
+            .domain([0, maxMatches])
+            .range([height, 0]);
 
-        // Create bars
-        g.selectAll('.bar')
-            .data(players)
-            .enter()
-            .append('rect')
-            .attr('class', 'bar')
-            .attr('x', 0)
-            .attr('y', (d, i) => yScale(i))
-            .attr('width', d => xScale(d.total_matches))
-            .attr('height', yScale.bandwidth())
-            .attr('fill', '#4a90e2')
-            .attr('opacity', 0.8);
+        // Create line generator
+        const line = d3.line()
+            .x(d => xScale(d.date))
+            .y(d => yScale(d.matches))
+            .curve(d3.curveMonotoneX);
 
-        // Add player names
-        g.selectAll('.player-label')
-            .data(players)
-            .enter()
-            .append('text')
-            .attr('class', 'player-label')
-            .attr('x', -5)
-            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
-            .attr('dy', '0.35em')
-            .attr('text-anchor', 'end')
-            .attr('font-size', '10px')
-            .attr('fill', '#333')
-            .text(d => d.player_name.split(' ').slice(-1)[0]); // Last name only
+        // Add grid lines
+        g.append('g')
+            .attr('class', 'grid')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(xScale).tickSize(-height).tickFormat(''))
+            .style('opacity', 0.3);
 
-        // Add value labels
-        g.selectAll('.value-label')
-            .data(players)
-            .enter()
-            .append('text')
-            .attr('class', 'value-label')
-            .attr('x', d => xScale(d.total_matches) + 3)
-            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
-            .attr('dy', '0.35em')
-            .attr('font-size', '9px')
-            .attr('fill', '#666')
-            .text(d => d.total_matches);
+        g.append('g')
+            .attr('class', 'grid')
+            .call(d3.axisLeft(yScale).tickSize(-width).tickFormat(''))
+            .style('opacity', 0.3);
 
-        // Add x-axis
+        // Add lines for each player (progressive drawing)
+        playerData.forEach(player => {
+            // Only show data up to current timepoint
+            const currentDataIndex = this.currentIndex;
+            const progressiveValues = player.values.slice(0, currentDataIndex + 1);
+            
+            // Check if current player has any meaningful data (non-zero matches)
+            const hasMatches = progressiveValues.some(d => d.matches > 0);
+            
+            if (progressiveValues.length > 1 && hasMatches) {
+                // Find the last timepoint where player actually had activity for the line
+                let lastActiveIndex = progressiveValues.length - 1;
+                for (let i = progressiveValues.length - 1; i >= 0; i--) {
+                    if (i === 0 || progressiveValues[i].matches > progressiveValues[i-1].matches) {
+                        lastActiveIndex = i;
+                        break;
+                    }
+                }
+                // Truncate line data to last active point
+                const activeLineData = progressiveValues.slice(0, lastActiveIndex + 1);
+                
+                if (activeLineData.length > 1) {
+                    g.append('path')
+                        .datum(activeLineData)
+                        .attr('class', 'line')
+                        .attr('fill', 'none')
+                        .attr('stroke', colorScale(player.name))
+                        .attr('stroke-width', 2)
+                        .attr('d', line);
+                }
+            }
+            
+            // Add current position photo (only if player has matches)
+            if (progressiveValues.length > 0 && hasMatches) {
+                // Find the last timepoint where player actually had activity
+                let lastActiveIndex = progressiveValues.length - 1;
+                for (let i = progressiveValues.length - 1; i >= 0; i--) {
+                    if (i === 0 || progressiveValues[i].matches > progressiveValues[i-1].matches) {
+                        lastActiveIndex = i;
+                        break;
+                    }
+                }
+                const currentValue = progressiveValues[lastActiveIndex];
+                
+                // Create a group for the photo
+                const photoGroup = g.append('g')
+                    .attr('class', 'current-photo-group')
+                    .attr('transform', `translate(${xScale(currentValue.date)}, ${yScale(currentValue.matches)})`)
+                    .style('cursor', 'pointer');
+                
+                // Add background circle
+                photoGroup.append('circle')
+                    .attr('class', 'photo-bg')
+                    .attr('r', 12)
+                    .attr('fill', colorScale(player.name))
+                    .attr('stroke', 'white')
+                    .attr('stroke-width', 2);
+                
+                // Add player photo
+                const photoImage = photoGroup.append('image')
+                    .attr('class', 'player-photo-line')
+                    .attr('x', -12)
+                    .attr('y', -12)
+                    .attr('width', 24)
+                    .attr('height', 24)
+                    .style('clip-path', 'circle(12px)')
+                    .attr('href', `./images/players/cropped/${player.name.toLowerCase().replace(/\s+/g, '-')}_cropped.png`)
+                    .style('transition', 'all 0.3s ease');
+                
+                // Add hover effects
+                photoGroup
+                    .on('mouseover', function(event, d) {
+                        // Bring to front
+                        d3.select(this).raise();
+                        
+                        // Enlarge photo and show tooltip
+                        d3.select(this).select('.player-photo-line')
+                            .transition()
+                            .duration(200)
+                            .attr('x', -24)
+                            .attr('y', -24)
+                            .attr('width', 48)
+                            .attr('height', 48)
+                            .style('clip-path', 'circle(24px)');
+                        
+                        d3.select(this).select('.photo-bg')
+                            .transition()
+                            .duration(200)
+                            .attr('r', 24);
+                        
+                        // Create tooltip
+                        const tooltip = d3.select('body').append('div')
+                            .attr('class', 'line-chart-tooltip')
+                            .style('position', 'absolute')
+                            .style('background', 'rgba(0,0,0,0.9)')
+                            .style('color', 'white')
+                            .style('padding', '8px 12px')
+                            .style('border-radius', '6px')
+                            .style('font-size', '12px')
+                            .style('pointer-events', 'none')
+                            .style('z-index', '1000')
+                            .style('border', `2px solid ${colorScale(player.name)}`)
+                            .style('left', (event.pageX + 10) + 'px')
+                            .style('top', (event.pageY - 10) + 'px')
+                            .html(`<strong>${player.name}</strong><br/>Career Matches: ${currentValue.matches.toLocaleString()}`);
+                    })
+                    .on('mouseout', function() {
+                        // Return to normal size
+                        d3.select(this).select('.player-photo-line')
+                            .transition()
+                            .duration(200)
+                            .attr('x', -12)
+                            .attr('y', -12)
+                            .attr('width', 24)
+                            .attr('height', 24)
+                            .style('clip-path', 'circle(12px)');
+                        
+                        d3.select(this).select('.photo-bg')
+                            .transition()
+                            .duration(200)
+                            .attr('r', 12);
+                        
+                        // Remove tooltip
+                        d3.selectAll('.line-chart-tooltip').remove();
+                    });
+                
+                // Handle photo load error - show initials
+                photoImage.on('error', function() {
+                    d3.select(this).style('display', 'none');
+                    
+                    // Add initials text
+                    const initials = player.name.split(' ').map(n => n[0]).join('');
+                    photoGroup.append('text')
+                        .attr('class', 'player-initials-line')
+                        .attr('text-anchor', 'middle')
+                        .attr('dominant-baseline', 'middle')
+                        .attr('fill', 'white')
+                        .attr('font-size', '10px')
+                        .attr('font-weight', 'bold')
+                        .attr('font-family', 'Arial, sans-serif')
+                        .style('pointer-events', 'none')
+                        .text(initials);
+                });
+            }
+        });
+
+
+        // Add axes
         g.append('g')
             .attr('transform', `translate(0,${height})`)
-            .call(d3.axisBottom(xScale).ticks(5));
+            .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat('%Y')));
+
+        g.append('g')
+            .call(d3.axisLeft(yScale));
 
         // Add title
         svg.append('text')
@@ -1069,82 +1206,229 @@ class RankingTimeline {
             .attr('font-size', '14px')
             .attr('font-weight', 'bold')
             .attr('fill', '#333')
-            .text('Most Career Matches');
+            .text('Career Matches Over Time');
+
     }
 
-    renderMostTitlesChart() {
-        const currentTimepoint = this.mostTitlesData[this.currentIndex];
-        if (!currentTimepoint) return;
-
+    renderMostTitlesLineChart() {
         const svg = d3.select('#most-titles-chart');
         if (svg.empty()) return;
 
         svg.selectAll('*').remove();
 
-        const margin = { top: 20, right: 30, bottom: 40, left: 60 };
+        const margin = { top: 30, right: 20, bottom: 40, left: 50 };
         const width = 400 - margin.left - margin.right;
         const height = 300 - margin.top - margin.bottom;
 
         const g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        // Get top 10 players from current timepoint
-        const players = currentTimepoint.top_players.slice(0, 10);
-        
+        // Get top 10 players by titles from final timepoint for consistent tracking
+        const finalTimepoint = this.accumulatedData[this.accumulatedData.length - 1];
+        const topPlayers = finalTimepoint.rank
+            .sort((a, b) => b.acc_titles - a.acc_titles)
+            .slice(0, 10)
+            .map(p => p.player_name);
+
+        // Create color scale for players
+        const colorScale = d3.scaleOrdinal()
+            .domain(topPlayers)
+            .range(['#f39c12', '#e74c3c', '#9b59b6', '#3498db', '#2ecc71', '#FF6B35', '#F7931E', '#9D4EDD', '#F72585', '#264653']);
+
+        // Prepare data for each player across all timepoints
+        const playerData = topPlayers.map(playerName => ({
+            name: playerName,
+            values: this.accumulatedData.map(timepoint => {
+                const player = timepoint.rank.find(p => p.player_name === playerName);
+                return {
+                    date: new Date(timepoint.date),
+                    titles: player ? player.acc_titles : 0
+                };
+            })
+        }));
+
         // Create scales
-        const xScale = d3.scaleLinear()
-            .domain([0, d3.max(players, d => d.total_titles)])
+        const xScale = d3.scaleTime()
+            .domain(d3.extent(this.accumulatedData, d => new Date(d.date)))
             .range([0, width]);
 
-        const yScale = d3.scaleBand()
-            .domain(players.map((d, i) => i))
-            .range([0, height])
-            .padding(0.1);
+        const maxTitles = d3.max(playerData, d => d3.max(d.values, v => v.titles));
+        const yScale = d3.scaleLinear()
+            .domain([0, maxTitles])
+            .range([height, 0]);
 
-        // Create bars
-        g.selectAll('.bar')
-            .data(players)
-            .enter()
-            .append('rect')
-            .attr('class', 'bar')
-            .attr('x', 0)
-            .attr('y', (d, i) => yScale(i))
-            .attr('width', d => xScale(d.total_titles))
-            .attr('height', yScale.bandwidth())
-            .attr('fill', '#f39c12')
-            .attr('opacity', 0.8);
+        // Create line generator
+        const line = d3.line()
+            .x(d => xScale(d.date))
+            .y(d => yScale(d.titles))
+            .curve(d3.curveMonotoneX);
 
-        // Add player names
-        g.selectAll('.player-label')
-            .data(players)
-            .enter()
-            .append('text')
-            .attr('class', 'player-label')
-            .attr('x', -5)
-            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
-            .attr('dy', '0.35em')
-            .attr('text-anchor', 'end')
-            .attr('font-size', '10px')
-            .attr('fill', '#333')
-            .text(d => d.player_name.split(' ').slice(-1)[0]); // Last name only
+        // Add grid lines
+        g.append('g')
+            .attr('class', 'grid')
+            .attr('transform', `translate(0,${height})`)
+            .call(d3.axisBottom(xScale).tickSize(-height).tickFormat(''))
+            .style('opacity', 0.3);
 
-        // Add value labels
-        g.selectAll('.value-label')
-            .data(players)
-            .enter()
-            .append('text')
-            .attr('class', 'value-label')
-            .attr('x', d => xScale(d.total_titles) + 3)
-            .attr('y', (d, i) => yScale(i) + yScale.bandwidth() / 2)
-            .attr('dy', '0.35em')
-            .attr('font-size', '9px')
-            .attr('fill', '#666')
-            .text(d => d.total_titles);
+        g.append('g')
+            .attr('class', 'grid')
+            .call(d3.axisLeft(yScale).tickSize(-width).tickFormat(''))
+            .style('opacity', 0.3);
 
-        // Add x-axis
+        // Add lines for each player (progressive drawing)
+        playerData.forEach(player => {
+            // Only show data up to current timepoint
+            const currentDataIndex = this.currentIndex;
+            const progressiveValues = player.values.slice(0, currentDataIndex + 1);
+            
+            // Check if current player has any meaningful data (non-zero titles)
+            const hasTitles = progressiveValues.some(d => d.titles > 0);
+            
+            if (progressiveValues.length > 1 && hasTitles) {
+                // Find the last timepoint where player actually had activity for the line
+                let lastActiveIndex = progressiveValues.length - 1;
+                for (let i = progressiveValues.length - 1; i >= 0; i--) {
+                    if (i === 0 || progressiveValues[i].titles > progressiveValues[i-1].titles) {
+                        lastActiveIndex = i;
+                        break;
+                    }
+                }
+                // Truncate line data to last active point
+                const activeLineData = progressiveValues.slice(0, lastActiveIndex + 1);
+                
+                if (activeLineData.length > 1) {
+                    g.append('path')
+                        .datum(activeLineData)
+                        .attr('class', 'line')
+                        .attr('fill', 'none')
+                        .attr('stroke', colorScale(player.name))
+                        .attr('stroke-width', 2)
+                        .attr('d', line);
+                }
+            }
+            
+            // Add current position photo (only if player has titles)
+            if (progressiveValues.length > 0 && hasTitles) {
+                // Find the last timepoint where player actually had activity
+                let lastActiveIndex = progressiveValues.length - 1;
+                for (let i = progressiveValues.length - 1; i >= 0; i--) {
+                    if (i === 0 || progressiveValues[i].titles > progressiveValues[i-1].titles) {
+                        lastActiveIndex = i;
+                        break;
+                    }
+                }
+                const currentValue = progressiveValues[lastActiveIndex];
+                
+                // Create a group for the photo
+                const photoGroup = g.append('g')
+                    .attr('class', 'current-photo-group')
+                    .attr('transform', `translate(${xScale(currentValue.date)}, ${yScale(currentValue.titles)})`)
+                    .style('cursor', 'pointer');
+                
+                // Add background circle
+                photoGroup.append('circle')
+                    .attr('class', 'photo-bg')
+                    .attr('r', 12)
+                    .attr('fill', colorScale(player.name))
+                    .attr('stroke', 'white')
+                    .attr('stroke-width', 2);
+                
+                // Add player photo
+                const photoImage = photoGroup.append('image')
+                    .attr('class', 'player-photo-line')
+                    .attr('x', -12)
+                    .attr('y', -12)
+                    .attr('width', 24)
+                    .attr('height', 24)
+                    .style('clip-path', 'circle(12px)')
+                    .attr('href', `./images/players/cropped/${player.name.toLowerCase().replace(/\s+/g, '-')}_cropped.png`)
+                    .style('transition', 'all 0.3s ease');
+                
+                // Add hover effects
+                photoGroup
+                    .on('mouseover', function(event, d) {
+                        // Bring to front
+                        d3.select(this).raise();
+                        
+                        // Enlarge photo and show tooltip
+                        d3.select(this).select('.player-photo-line')
+                            .transition()
+                            .duration(200)
+                            .attr('x', -24)
+                            .attr('y', -24)
+                            .attr('width', 48)
+                            .attr('height', 48)
+                            .style('clip-path', 'circle(24px)');
+                        
+                        d3.select(this).select('.photo-bg')
+                            .transition()
+                            .duration(200)
+                            .attr('r', 24);
+                        
+                        // Create tooltip
+                        const tooltip = d3.select('body').append('div')
+                            .attr('class', 'line-chart-tooltip')
+                            .style('position', 'absolute')
+                            .style('background', 'rgba(0,0,0,0.9)')
+                            .style('color', 'white')
+                            .style('padding', '8px 12px')
+                            .style('border-radius', '6px')
+                            .style('font-size', '12px')
+                            .style('pointer-events', 'none')
+                            .style('z-index', '1000')
+                            .style('border', `2px solid ${colorScale(player.name)}`)
+                            .style('left', (event.pageX + 10) + 'px')
+                            .style('top', (event.pageY - 10) + 'px')
+                            .html(`<strong>${player.name}</strong><br/>Career Titles: ${currentValue.titles.toLocaleString()}`);
+                    })
+                    .on('mouseout', function() {
+                        // Return to normal size
+                        d3.select(this).select('.player-photo-line')
+                            .transition()
+                            .duration(200)
+                            .attr('x', -12)
+                            .attr('y', -12)
+                            .attr('width', 24)
+                            .attr('height', 24)
+                            .style('clip-path', 'circle(12px)');
+                        
+                        d3.select(this).select('.photo-bg')
+                            .transition()
+                            .duration(200)
+                            .attr('r', 12);
+                        
+                        // Remove tooltip
+                        d3.selectAll('.line-chart-tooltip').remove();
+                    });
+                
+                // Handle photo load error - show initials
+                photoImage.on('error', function() {
+                    d3.select(this).style('display', 'none');
+                    
+                    // Add initials text
+                    const initials = player.name.split(' ').map(n => n[0]).join('');
+                    photoGroup.append('text')
+                        .attr('class', 'player-initials-line')
+                        .attr('text-anchor', 'middle')
+                        .attr('dominant-baseline', 'middle')
+                        .attr('fill', 'white')
+                        .attr('font-size', '10px')
+                        .attr('font-weight', 'bold')
+                        .attr('font-family', 'Arial, sans-serif')
+                        .style('pointer-events', 'none')
+                        .text(initials);
+                });
+            }
+        });
+
+
+        // Add axes
         g.append('g')
             .attr('transform', `translate(0,${height})`)
-            .call(d3.axisBottom(xScale).ticks(5));
+            .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat('%Y')));
+
+        g.append('g')
+            .call(d3.axisLeft(yScale));
 
         // Add title
         svg.append('text')
@@ -1154,7 +1438,8 @@ class RankingTimeline {
             .attr('font-size', '14px')
             .attr('font-weight', 'bold')
             .attr('fill', '#333')
-            .text('Most Career Titles');
+            .text('Career Titles Over Time');
+
     }
 
     updateDate() {

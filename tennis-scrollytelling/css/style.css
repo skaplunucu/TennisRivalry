@@ -446,11 +446,13 @@ body::-webkit-scrollbar {
 /* Line Charts Container */
 .line-charts-container {
     position: fixed;
-    bottom: 210px;
+    top: 520px; /* Below the ranking container */
     left: 20px;
     display: flex;
-    gap: 20px;
+    flex-direction: column !important; /* Force vertical stacking */
+    gap: 15px;
     z-index: 60;
+    width: 430px; /* Set explicit width */
 }
 
 .chart-container {
@@ -460,6 +462,7 @@ body::-webkit-scrollbar {
     padding: 15px;
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255, 255, 255, 0.2);
+    width: 100%; /* Take full width of container */
 }
 
 /* Line chart specific styles */
