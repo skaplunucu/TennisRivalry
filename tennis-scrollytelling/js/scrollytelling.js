@@ -570,13 +570,16 @@ class RankingTimeline {
             this.colorIndex = 0;
         }
 
-        // Assign consistent colors to players
+        // Assign consistent colors to players (excluding "Others")
         chartData.forEach(d => {
-            if (!this.playerColors.has(d.player_name)) {
+            if (d.player_name !== 'Others' && !this.playerColors.has(d.player_name)) {
                 this.playerColors.set(d.player_name, this.colorPalette[this.colorIndex % this.colorPalette.length]);
                 this.colorIndex++;
             }
         });
+
+        // Always assign white color to "Others"
+        this.playerColors.set('Others', '#FFFFFF');
 
         // Sort data by momentum score (largest first for clockwise arrangement)
         chartData.sort((a, b) => b.momentum_score - a.momentum_score);
@@ -651,7 +654,7 @@ class RankingTimeline {
 
         arcsEnter.append('path')
             .attr('class', 'pie-slice')
-            .attr('fill', d => this.playerColors.get(d.data.player_name))
+            .attr('fill', d => this.playerColors.get(d.data.player_name) || '#CCCCCC')
             .style('opacity', 0)
             .on('mouseover', function(event, d) {
                 const tooltip = d3.select('body').append('div')
@@ -675,10 +678,15 @@ class RankingTimeline {
         // Update all arcs (existing and new)
         const arcsUpdate = arcsEnter.merge(arcs);
 
+        // IMMEDIATELY set colors without transition to prevent transparency
+        arcsUpdate.select('.pie-slice')
+            .attr('fill', d => this.playerColors.get(d.data.player_name) || '#CCCCCC')
+            .style('opacity', 1);
+
+        // Then apply the transition for shape changes only
         arcsUpdate.select('.pie-slice')
             .transition()
             .duration(750)
-            .style('opacity', 1)
             .attrTween('d', function(d) {
                 const interpolate = d3.interpolate(this._current || {startAngle: 0, endAngle: 0}, d);
                 this._current = interpolate(0);
