@@ -5,6 +5,7 @@ class RankingTimeline {
         this.mostTitlesData = null;
         this.currentIndex = 0;
         this.scroller = null;
+        this.lastUpdateTime = 0;
         this.init();
     }
 
@@ -537,6 +538,11 @@ class RankingTimeline {
 
     renderPieChart(topPerformers) {
         const svg = d3.select('#momentum-pie-chart');
+        
+        // Detect rapid updates (timeline jumps) and skip transitions
+        const now = Date.now();
+        const isRapidUpdate = (now - this.lastUpdateTime) < 100; // Less than 100ms = rapid update
+        this.lastUpdateTime = now;
 
         if (topPerformers.length === 0) {
             svg.selectAll('*').remove();
@@ -630,11 +636,15 @@ class RankingTimeline {
         const lines = g.selectAll('.pie-label-line')
             .data(linesData, d => d.data.player_name);
 
-        lines.exit()
-            .transition()
-            .duration(750)
-            .style('opacity', 0)
-            .remove();
+        if (isRapidUpdate) {
+            lines.exit().remove();
+        } else {
+            lines.exit()
+                .transition()
+                .duration(200)
+                .style('opacity', 0)
+                .remove();
+        }
 
         const linesEnter = lines.enter()
             .append('polyline')
@@ -643,31 +653,50 @@ class RankingTimeline {
 
         const linesUpdate = linesEnter.merge(lines);
 
-        linesUpdate
-            .transition()
-            .duration(750)
-            .style('opacity', 1)
-            .attr('points', function(d) {
-                const pos = outerArc.centroid(d);
-                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
-                // Line to player card photo
-                pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
-                const cardPos = [...pos];
-                cardPos[0] += isLeft ? -40 : -40; // Updated to match new image position
-                cardPos[1] = pos[1] - 15;
-                return [arc.centroid(d), outerArc.centroid(d), cardPos].join(' ');
-            });
+        if (isRapidUpdate) {
+            linesUpdate
+                .style('opacity', 1)
+                .attr('points', function(d) {
+                    const pos = outerArc.centroid(d);
+                    const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                    // Line to player card photo
+                    pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
+                    const cardPos = [...pos];
+                    cardPos[0] += isLeft ? -40 : -40; // Updated to match new image position
+                    cardPos[1] = pos[1] - 15;
+                    return [arc.centroid(d), outerArc.centroid(d), cardPos].join(' ');
+                });
+        } else {
+            linesUpdate
+                .transition()
+                .duration(200)
+                .style('opacity', 1)
+                .attr('points', function(d) {
+                    const pos = outerArc.centroid(d);
+                    const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                    // Line to player card photo
+                    pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
+                    const cardPos = [...pos];
+                    cardPos[0] += isLeft ? -40 : -40; // Updated to match new image position
+                    cardPos[1] = pos[1] - 15;
+                    return [arc.centroid(d), outerArc.centroid(d), cardPos].join(' ');
+                });
+        }
 
         // Bind data to pie slices with key function for object constancy
         const arcs = g.selectAll('.arc')
             .data(pie(chartData), d => d.data.player_name);
 
         // Remove exiting arcs
-        arcs.exit()
-            .transition()
-            .duration(750)
-            .style('opacity', 0)
-            .remove();
+        if (isRapidUpdate) {
+            arcs.exit().remove();
+        } else {
+            arcs.exit()
+                .transition()
+                .duration(200)
+                .style('opacity', 0)
+                .remove();
+        }
 
         // Add new arcs
         const arcsEnter = arcs.enter()
@@ -703,30 +732,42 @@ class RankingTimeline {
         // IMMEDIATELY set colors without transition to prevent transparency
         arcsUpdate.select('.pie-slice')
             .attr('fill', d => this.playerColors.get(d.data.player_name) || '#CCCCCC')
-            .style('opacity', 1);
+            .style('opacity', 1)
+            .interrupt(); // Stop any ongoing transitions immediately
 
         // Then apply the transition for shape changes only
-        arcsUpdate.select('.pie-slice')
-            .transition()
-            .duration(750)
-            .attrTween('d', function(d) {
-                const interpolate = d3.interpolate(this._current || {startAngle: 0, endAngle: 0}, d);
-                this._current = interpolate(0);
-                return function(t) {
-                    return arc(interpolate(t));
-                };
-            });
+        if (isRapidUpdate) {
+            // Skip transitions for rapid updates
+            arcsUpdate.select('.pie-slice')
+                .attr('d', arc)
+                .each(function(d) { this._current = d; });
+        } else {
+            arcsUpdate.select('.pie-slice')
+                .transition()
+                .duration(200)
+                .attrTween('d', function(d) {
+                    const interpolate = d3.interpolate(this._current || {startAngle: 0, endAngle: 0}, d);
+                    this._current = interpolate(0);
+                    return function(t) {
+                        return arc(interpolate(t));
+                    };
+                });
+        }
 
         // Handle player cards for individual players (not "Others")
         const playerCardsData = pie(chartData).filter(d => d.data.player_name !== 'Others');
         const playerCards = g.selectAll('.player-card')
             .data(playerCardsData, d => d.data.player_name);
 
-        playerCards.exit()
-            .transition()
-            .duration(750)
-            .style('opacity', 0)
-            .remove();
+        if (isRapidUpdate) {
+            playerCards.exit().remove();
+        } else {
+            playerCards.exit()
+                .transition()
+                .duration(200)
+                .style('opacity', 0)
+                .remove();
+        }
 
         const cardsEnter = playerCards.enter()
             .append('g')
@@ -745,21 +786,32 @@ class RankingTimeline {
 
         const cardsUpdate = cardsEnter.merge(playerCards);
 
-        cardsUpdate
-            .transition()
-            .duration(750)
-            .style('opacity', 1)
-            .attr('transform', function(d) {
-                const pos = outerArc.centroid(d);
-                const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
-                pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
-                return `translate(${pos})`;
-            });
+        if (isRapidUpdate) {
+            cardsUpdate
+                .style('opacity', 1)
+                .attr('transform', function(d) {
+                    const pos = outerArc.centroid(d);
+                    const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                    pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
+                    return `translate(${pos})`;
+                });
+        } else {
+            cardsUpdate
+                .transition()
+                .duration(200)
+                .style('opacity', 1)
+                .attr('transform', function(d) {
+                    const pos = outerArc.centroid(d);
+                    const isLeft = (d.endAngle + d.startAngle)/2 < Math.PI;
+                    pos[0] = radius * 1.4 * (isLeft ? 1 : -1);
+                    return `translate(${pos})`;
+                });
+        }
 
         // Update background rectangles for ALL cards - consistent layout
         cardsUpdate.selectAll('.player-card-bg')
             .transition()
-            .duration(750)
+            .duration(200)
             .attr('x', -80) // Always covers the consistent layout
             .attr('y', -60)
             .attr('width', 190) // Even wider to add 10px right padding
