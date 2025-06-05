@@ -814,7 +814,7 @@ class RankingTimeline {
             .duration(200)
             .attr('x', -80) // Always covers the consistent layout
             .attr('y', -60)
-            .attr('width', 190) // Even wider to add 10px right padding
+            .attr('width', 220) // Increased width to accommodate longer text
             .attr('height', 80);
 
         // Add player photo (circle background) - FIXED: only for new cards
